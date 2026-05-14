@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM-OS · Sudharsan</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F8FAFC;--surface:#FFF;--surface2:#F1F5F9;--border:#E2E8F0;
+  --text:#0F172A;--muted:#64748B;
+  --primary:#4F46E5;--primary-light:#EEF2FF;
+  --focus:#D97706;--focus-bg:#FFFBEB;--focus-border:#FCD34D;
+  --success:#059669;--success-bg:#ECFDF5;
+  --danger:#DC2626;--danger-bg:#FEF2F2;
+  --shadow:0 1px 3px rgba(0,0,0,.08);
+  --r:8px;--rl:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+
+/* HEADER */
+.app-header{background:#1E293B;color:#fff;padding:0 20px;display:flex;align-items:center;gap:16px;height:52px;position:sticky;top:0;z-index:100}
+.app-logo{font-weight:700;font-size:15px;letter-spacing:.05em}
+.clocks{display:flex;gap:14px;flex:1;font-size:11px;color:#94A3B8}
+.clock-item{display:flex;flex-direction:column;align-items:center;gap:1px}
+.clock-city{font-size:9px;opacity:.7;text-transform:uppercase}
+.app-version{font-size:11px;color:#64748B;background:#0F172A;padding:2px 8px;border-radius:4px;white-space:nowrap}
+
+/* TABS */
+.tab-nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 20px;gap:4px;position:sticky;top:52px;z-index:99}
+.tab-btn{padding:12px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab-section{display:none}.tab-section.active{display:block}
+
+/* LAYOUT */
+.main-content{max-width:1100px;margin:0 auto;padding:20px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r);border:1px solid var(--border);cursor:pointer;font-size:13px;font-weight:500;background:var(--surface);color:var(--text);transition:all .15s}
+.btn:hover{background:var(--surface2)}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn-primary:hover{background:#4338CA;border-color:#4338CA}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{padding:6px;border-radius:6px;min-width:30px;justify-content:center}
+.btn-danger{background:var(--danger-bg);border-color:#FECACA;color:var(--danger)}
+.btn-danger:hover{background:#FEE2E2}
+.btn-success{background:var(--success-bg);border-color:#A7F3D0;color:var(--success)}
+.btn-success:hover{background:#D1FAE5}
+.btn-focus{background:var(--focus-bg);border-color:var(--focus-border);color:var(--focus)}
+.btn-focus:hover{background:#FEF3C7}
+.btn-focus.is-focus{background:var(--focus);border-color:var(--focus);color:#fff}
+
+/* MORNING BANNER */
+.morning-banner{background:linear-gradient(135deg,#667EEA,#764BA2);border-radius:var(--rl);padding:16px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.morning-banner h3{font-size:15px;font-weight:600}
+.morning-banner p{font-size:12px;opacity:.85;margin-top:2px}
+.morning-banner .btn{background:#fff;color:var(--primary);border:none;font-weight:600}
+
+/* FOCUS SECTION */
+.focus-section{background:var(--surface);border:1px solid var(--focus-border);border-radius:var(--rl);padding:16px 20px;margin-bottom:20px}
+.focus-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.focus-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.focus-slots{display:flex;flex-direction:column;gap:8px}
+.focus-slot{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--focus-bg);border:1px solid var(--focus-border);border-radius:var(--r)}
+.focus-slot.empty{background:var(--surface2);border-color:var(--border);border-style:dashed;color:var(--muted);cursor:pointer}
+.focus-slot.empty:hover{background:var(--surface);border-color:var(--focus-border)}
+.focus-slot.done{background:var(--success-bg);border-color:#A7F3D0}
+.focus-slot.not-done-today{background:var(--danger-bg);border-color:#FECACA}
+.focus-num{font-size:11px;font-weight:700;color:var(--focus);width:18px;text-align:center}
+.focus-title-text{flex:1;font-size:13px;font-weight:500}
+.focus-meta{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.focus-actions{display:flex;gap:5px;flex-shrink:0}
+.carried-badge{font-size:10px;padding:2px 6px;background:#E0E7FF;color:#4338CA;border-radius:4px;font-weight:500}
+.status-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500}
+.status-badge.done{background:var(--success-bg);color:var(--success)}
+.status-badge.not-today{background:var(--danger-bg);color:var(--danger)}
+
+/* WEEKLY SUMMARY */
+.weekly-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:20px;overflow:hidden}
+.weekly-summary summary{padding:14px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600;list-style:none;user-select:none}
+.weekly-summary summary::-webkit-details-marker{display:none}
+.weekly-summary summary::after{content:'↓';font-size:12px;color:var(--muted)}
+.weekly-summary[open] summary::after{content:'↑'}
+.weekly-body{padding:0 20px 20px}
+.weekly-stats{display:flex;gap:12px;margin-bottom:20px}
+.w-stat{flex:1;padding:12px 16px;border-radius:var(--r);text-align:center}
+.w-stat.total{background:#EEF2FF}.w-stat.done{background:var(--success-bg)}.w-stat.notdone{background:var(--danger-bg)}
+.w-stat-num{font-size:28px;font-weight:700;line-height:1}
+.w-stat.total .w-stat-num{color:var(--primary)}
+.w-stat.done .w-stat-num{color:var(--success)}
+.w-stat.notdone .w-stat-num{color:var(--danger)}
+.w-stat-label{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.weekly-tables{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.wt-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}
+.mini-table{width:100%;border-collapse:collapse;font-size:12px}
+.mini-table th{text-align:left;padding:6px 8px;background:var(--surface2);font-weight:600;color:var(--muted)}
+.mini-table td{padding:6px 8px;border-bottom:1px solid var(--border)}
+.mini-table tr:last-child td{border-bottom:none}
+.incomplete-list h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--danger);margin-bottom:8px}
+.incomplete-item{padding:7px 12px;background:var(--danger-bg);border:1px solid #FECACA;border-radius:6px;margin-bottom:4px;font-size:12px}
+
+/* TASK SECTION */
+.task-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.ts-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ts-title{font-size:14px;font-weight:600}
+.ts-filters{display:flex;gap:7px;padding:10px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--surface2)}
+.f-select{padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);cursor:pointer}
+.f-search{padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);width:150px}
+.task-list{list-style:none}
+.task-empty{padding:36px 20px;text-align:center;color:var(--muted);font-size:13px}
+.task-loading{padding:24px 20px;text-align:center;color:var(--muted);font-size:13px}
+
+/* TASK CARD */
+.task-card{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;transition:background .1s}
+.task-card:last-child{border-bottom:none}
+.task-card:hover{background:var(--surface2)}
+.task-card.focus-pinned{background:var(--focus-bg)}
+.task-card.focus-pinned:hover{background:#FEF3C7}
+.task-card.stale{border-left:3px solid #F59E0B;padding-left:17px}
+.task-check{width:18px;height:18px;border:2px solid var(--border);border-radius:50%;cursor:pointer;flex-shrink:0;margin-top:2px;transition:all .15s}
+.task-check:hover{border-color:var(--success);background:var(--success-bg)}
+.task-body{flex:1;min-width:0}
+.task-title-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:5px}
+.task-title{font-size:13px;font-weight:500}
+.task-badges{display:flex;gap:4px;flex-wrap:wrap}
+.task-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.task-link{color:var(--primary);text-decoration:none;font-size:11px}
+.task-link:hover{text-decoration:underline}
+.task-actions{display:flex;gap:5px;align-items:flex-start;flex-shrink:0}
+.remarks-preview{font-size:11px;color:var(--muted);font-style:italic;margin-top:3px}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.b-high{background:#FEF2F2;color:#DC2626}
+.b-medium{background:#FFFBEB;color:#D97706}
+.b-low{background:#F0FDF4;color:#16A34A}
+.b-reply{background:#EFF6FF;color:#2563EB}
+.b-review{background:#F5F3FF;color:#7C3AED}
+.b-create{background:#ECFDF5;color:#059669}
+.b-setup{background:#EEF2FF;color:#4F46E5}
+.b-call{background:#FFFBEB;color:#D97706}
+.b-decide{background:#FEF2F2;color:#DC2626}
+.b-investigate{background:#ECFEFF;color:#0891B2}
+.b-other{background:#F8FAFC;color:#64748B}
+.b-customer{background:#E0E7FF;color:#3730A3}
+.b-ws{background:#F3F4F6;color:#374151}
+.b-channel{background:#F1F5F9;color:#475569}
+.b-focus{background:#FEF3C7;color:#92400E}
+.b-overdue{background:#FEF2F2;color:#DC2626}
+.b-due-today{background:#FFFBEB;color:#D97706}
+.b-soon{background:#F0FDF4;color:#16A34A}
+.b-waiting{background:#EFF6FF;color:#2563EB}
+.b-waiting-hot{background:#FEF2F2;color:#DC2626}
+
+/* MODALS */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--rl);padding:24px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:20px}
+.form-group{margin-bottom:13px}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.form-input,.form-select,.form-textarea{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--r);font-size:13px;background:var(--surface);color:var(--text)}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--primary)}
+.form-textarea{resize:vertical;min-height:80px;font-family:inherit}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+
+/* MORNING PLAN MODAL */
+.mp-section{margin-bottom:20px}
+.mp-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px}
+.pick-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;cursor:pointer;transition:all .1s}
+.pick-item:hover{background:var(--surface2)}
+.pick-item.selected{background:var(--focus-bg);border-color:var(--focus-border)}
+.pick-title{font-size:13px;font-weight:500}
+.pick-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.focus-counter{font-size:12px;color:var(--muted);margin-bottom:14px}
+.focus-counter strong{color:var(--focus)}
+.selected-preview{padding:10px 14px;background:var(--focus-bg);border:1px solid var(--focus-border);border-radius:var(--r);margin-top:12px;font-size:12px}
+.selected-preview-title{font-size:11px;font-weight:700;color:var(--focus);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+
+/* SETTINGS */
+.settings-section{margin-bottom:28px}
+.ss-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.s-list{list-style:none;display:flex;flex-direction:column;gap:5px}
+.s-item{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface2);border-radius:6px}
+.s-name{flex:1;font-size:13px}
+.s-add{display:flex;gap:8px;margin-top:8px}
+.s-input{flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface)}
+.info-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;font-size:13px;color:var(--muted)}
+.info-box code{font-size:11px;background:var(--border);padding:1px 5px;border-radius:3px;color:var(--text)}
+
+.hidden{display:none!important}
+@media(max-width:768px){.weekly-tables{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.clocks{gap:8px}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="app-logo">PM-OS</div>
+  <div class="clocks" id="clocks"></div>
+  <div class="app-version">v0.8 · 2026-05-05</div>
+</header>
+
+<!-- TAB NAV -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="today">Today</button>
+  <button class="tab-btn" data-tab="all">Open tasks</button>
+  <button class="tab-btn" data-tab="completed">Completed</button>
+  <button class="tab-btn" data-tab="settings">Settings</button>
+</nav>
+
+<!-- TODAY TAB -->
+<section class="tab-section active" id="tab-today">
+<div class="main-content">
+
+  <!-- Morning Banner -->
+  <div class="morning-banner hidden" id="morning-banner">
+    <div>
+      <h3>Morning planning</h3>
+      <p id="morning-msg">You haven't set today's focus yet.</p>
+    </div>
+    <button class="btn" onclick="openMorningPlan()">Plan my day →</button>
+  </div>
+
+  <!-- Focus Section -->
+  <div class="focus-section">
+    <div class="focus-header">
+      <div class="focus-title">⭐ Today's Focus
+        <span id="focus-date" style="font-size:12px;font-weight:400;color:var(--muted)"></span>
+      </div>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-sm" onclick="openMorningPlan()">✏ Edit plan</button>
+        <button class="btn btn-sm btn-danger" onclick="endDay()">End Day ✗</button>
+      </div>
+    </div>
+    <div class="focus-slots" id="focus-slots"><div class="task-loading">Loading…</div></div>
+  </div>
+
+  <!-- Today Tasks -->
+  <div class="task-section">
+    <div class="ts-header">
+      <span class="ts-title">Today's tasks <span id="today-count" style="font-size:12px;font-weight:400;color:var(--muted)"></span></span>
+      <button class="btn btn-primary btn-sm" onclick="openAddTask()">+ Add task</button>
+    </div>
+    <div class="ts-filters">
+      <select class="f-select" id="t-pri" onchange="renderTodayTasks()"><option value="">Any priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+      <select class="f-select" id="t-type" onchange="renderTodayTasks()"><option value="">Any action</option><option value="reply">Reply</option><option value="review">Review</option><option value="create">Create</option><option value="setup">Setup</option><option value="call">Call</option><option value="decide">Decide</option><option value="investigate">Investigate</option><option value="other">Other</option></select>
+      <select class="f-select" id="t-cust" onchange="renderTodayTasks()"><option value="">Any customer</option></select>
+      <select class="f-select" id="t-ws" onchange="renderTodayTasks()"><option value="">Any workstream</option></select>
+      <input class="f-search" id="t-search" placeholder="Search…" oninput="renderTodayTasks()">
+    </div>
+    <ul class="task-list" id="today-list"><li class="task-loading">Loading…</li></ul>
+  </div>
+
+</div>
+</section>
+
+<!-- ALL TASKS TAB -->
+<section class="tab-section" id="tab-all">
+<div class="main-content">
+  <div class="task-section">
+    <div class="ts-header">
+      <span class="ts-title">Open tasks <span id="all-count" style="font-size:12px;font-weight:400;color:var(--muted)"></span></span>
+      <button class="btn btn-primary btn-sm" onclick="openAddTask()">+ Add task</button>
+    </div>
+    <div class="ts-filters">
+      <select class="f-select" id="a-status" onchange="renderAllTasks()"><option value="">Any status</option><option value="open">Open</option><option value="in_progress">In progress</option><option value="delegated">Delegated</option></select>
+      <select class="f-select" id="a-pri" onchange="renderAllTasks()"><option value="">Any priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+      <select class="f-select" id="a-type" onchange="renderAllTasks()"><option value="">Any action</option><option value="reply">Reply</option><option value="review">Review</option><option value="create">Create</option><option value="setup">Setup</option><option value="call">Call</option><option value="decide">Decide</option><option value="investigate">Investigate</option><option value="other">Other</option></select>
+      <select class="f-select" id="a-chan" onchange="renderAllTasks()"><option value="">Any channel</option><option value="teams">Teams</option><option value="outlook">Outlook</option><option value="document">Document</option><option value="other">Other</option><option value="none">No link</option></select>
+      <select class="f-select" id="a-cust" onchange="renderAllTasks()"><option value="">Any customer</option></select>
+      <select class="f-select" id="a-ws" onchange="renderAllTasks()"><option value="">Any workstream</option></select>
+      <select class="f-select" id="a-assignee" onchange="renderAllTasks()"><option value="">Any assignee</option></select>
+      <select class="f-select" id="a-req" onchange="renderAllTasks()"><option value="">Any requester</option></select>
+      <input class="f-search" id="a-search" placeholder="Search…" oninput="renderAllTasks()">
+    </div>
+    <ul class="task-list" id="all-list"><li class="task-loading">Loading…</li></ul>
+  </div>
+</div>
+</section>
+
+<!-- COMPLETED TAB -->
+<section class="tab-section" id="tab-completed">
+<div class="main-content">
+  <div class="task-section">
+    <div class="ts-header">
+      <span class="ts-title">Completed <span id="comp-count" style="font-size:12px;font-weight:400;color:var(--muted)"></span></span>
+    </div>
+    <div class="ts-filters">
+      <select class="f-select" id="c-cust" onchange="renderCompleted()"><option value="">Any customer</option></select>
+      <select class="f-select" id="c-ws" onchange="renderCompleted()"><option value="">Any workstream</option></select>
+      <select class="f-select" id="c-req" onchange="renderCompleted()"><option value="">Any requester</option></select>
+      <input class="f-search" id="c-search" placeholder="Search…" oninput="renderCompleted()">
+    </div>
+    <ul class="task-list" id="comp-list"><li class="task-loading">Loading…</li></ul>
+  </div>
+</div>
+</section>
+
+<!-- SETTINGS TAB -->
+<section class="tab-section" id="tab-settings">
+<div class="main-content">
+  <div class="settings-section">
+    <div class="ss-title">Requesters</div>
+    <ul class="s-list" id="team-list"></ul>
+    <div class="s-add"><input class="s-input" id="new-team" placeholder="Add requester…" onkeydown="if(event.key==='Enter')addTeamMember()"><button class="btn btn-sm btn-primary" onclick="addTeamMember()">Add</button></div>
+  </div>
+  <div class="settings-section">
+    <div class="ss-title">Workstreams</div>
+    <ul class="s-list" id="ws-list"></ul>
+    <div class="s-add"><input class="s-input" id="new-ws" placeholder="Add workstream…" onkeydown="if(event.key==='Enter')addWorkstream()"><button class="btn btn-sm btn-primary" onclick="addWorkstream()">Add</button></div>
+  </div>
+  <div class="settings-section">
+    <div class="ss-title">Customers</div>
+    <ul class="s-list" id="cust-list"></ul>
+    <div class="s-add"><input class="s-input" id="new-cust" placeholder="Add customer…" onkeydown="if(event.key==='Enter')addCustomer()"><button class="btn btn-sm btn-primary" onclick="addCustomer()">Add</button></div>
+  </div>
+  <div class="settings-section">
+    <div class="ss-title">Connection</div>
+    <div class="info-box">Backed by Supabase. URL ends with <code>vjbmbopacigotjdogxqg</code>. Tasks sync across devices automatically.</div>
+  </div>
+  <div class="settings-section">
+    <div class="ss-title">Version</div>
+    <div class="info-box"><strong>v0.8 · 2026-05-05</strong><br><span style="font-size:12px">Focus sessions · Morning planning · End-of-day · Weekly synthesis.</span><br><br>Hard-refresh (<code>Cmd+Shift+R</code>) if version looks stale.</div>
+  </div>
+</div>
+</section>
+
+</div><!-- /app -->
+
+<!-- ADD/EDIT TASK MODAL -->
+<div class="modal-overlay" id="add-modal">
+<div class="modal">
+  <div class="modal-title" id="add-modal-title">Add task</div>
+  <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="f-title" placeholder="What needs to be done?"></div>
+  <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="f-desc" rows="2" placeholder="Additional context…"></textarea></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Priority</label><select class="form-select" id="f-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select></div>
+    <div class="form-group"><label class="form-label">Action type</label><select class="form-select" id="f-type"><option value="">—</option><option value="reply">Reply (to email/chat)</option><option value="review">Review (something shared)</option><option value="create">Create (doc/PRD/sheet)</option><option value="setup">Setup / config / access</option><option value="call">Call / meeting</option><option value="decide">Decide</option><option value="investigate">Investigate / research</option><option value="other">Other</option></select></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Customer</label><select class="form-select" id="f-customer"><option value="">—</option></select></div>
+    <div class="form-group"><label class="form-label">Assignee</label><select class="form-select" id="f-assignee"><option value="Me">Me</option></select></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Due date</label><input class="form-input" id="f-due" type="date"></div>
+    <div class="form-group"><label class="form-label">Awaiting since</label><input class="form-input" id="f-awaiting" type="date"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Requester</label><select class="form-select" id="f-requester"><option value="">—</option></select></div>
+  <div class="form-group"><label class="form-label">Source / thread link</label><input class="form-input" id="f-source" placeholder="https://…"></div>
+  <div class="form-group"><label class="form-label">Workstream</label><select class="form-select" id="f-workstream"><option value="">—</option></select></div>
+  <input type="hidden" id="f-id">
+  <div class="modal-actions">
+    <button class="btn btn-danger btn-sm hidden" id="delete-btn" onclick="deleteTask()">Delete</button>
+    <button class="btn" onclick="closeAddModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveTask()">Save</button>
+  </div>
+</div>
+</div>
+
+<!-- COMPLETE MODAL -->
+<div class="modal-overlay" id="complete-modal">
+<div class="modal">
+  <div class="modal-title">Mark task complete</div>
+  <div class="form-group"><label class="form-label">Completion remarks (4–5 lines on what you did)</label><textarea class="form-textarea" id="complete-remarks" rows="5" placeholder="Describe what got done, any decisions made, next steps…"></textarea></div>
+  <input type="hidden" id="complete-id">
+  <div class="modal-actions">
+    <button class="btn" onclick="closeCompleteModal()">Cancel</button>
+    <button class="btn" onclick="skipRemarks()">Skip remarks</button>
+    <button class="btn btn-primary" onclick="saveComplete()">Save & mark done ✓</button>
+  </div>
+</div>
+</div>
+
+<!-- DELEGATE MODAL -->
+<div class="modal-overlay" id="delegate-modal">
+<div class="modal">
+  <div class="modal-title">Delegate task</div>
+  <div class="form-group"><label class="form-label">Context for the agent</label><textarea class="form-textarea" id="d-context" rows="4" placeholder="Paste transcript, context, what's been done so far…"></textarea></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Channel</label><select class="form-select" id="d-channel"><option value="cowork">Claude Cowork (paste in chat)</option><option value="teams">Microsoft Teams chat</option></select></div>
+    <div class="form-group"><label class="form-label">To (Teams only)</label><select class="form-select" id="d-to"><option value="">— select teammate —</option></select></div>
+  </div>
+  <input type="hidden" id="d-id">
+  <div class="modal-actions">
+    <button class="btn" onclick="closeDelegateModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="approveDelegation()">Approve & copy message</button>
+  </div>
+</div>
+</div>
+
+<!-- MORNING PLAN MODAL -->
+<div class="modal-overlay" id="mp-modal">
+<div class="modal" style="max-width:580px">
+  <div class="modal-title">🌅 Plan Your Day</div>
+  <div class="focus-counter">Select up to <strong id="slots-left">3</strong> focus tasks — deep work that needs your full attention today.</div>
+  <div class="mp-section" id="carry-section" style="display:none">
+    <h4>📌 Carry forward from yesterday</h4>
+    <div id="carry-list"></div>
+  </div>
+  <div class="mp-section">
+    <h4>📋 Pick from open tasks</h4>
+    <input class="form-input" id="mp-search" placeholder="Search tasks…" oninput="filterPicker()" style="margin-bottom:10px">
+    <div id="task-picker" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:5px"></div>
+  </div>
+  <div id="sel-preview" class="selected-preview hidden">
+    <div class="selected-preview-title">Selected focus tasks</div>
+    <div id="sel-list"></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeMorningPlan()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveMorningPlan()">Start Day ⭐</button>
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const SUPABASE_URL = 'https://vjbmbopacigotjdogxqg.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqYm1ib3BhY2lnb3RqZG9neHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MzgyNzUsImV4cCI6MjA5MzMxNDI3NX0.BHv0lbl1sJ3no78ymZwWik7eaHCiW15nMl3JotBQGtM';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── STATE ───────────────────────────────────────────────
+let tasks = [], teamMembers = [], customers = [], workstreams = [];
+let focusSessions = [], yesterdayFS = [];
+let completedTasks = [];
+let weeklyCache = [];
+let planSel = new Set(); // task_ids selected in morning plan modal
+
+const TODAY    = new Date().toISOString().split('T')[0];
+const YESTERDAY = new Date(Date.now()-86400000).toISOString().split('T')[0];
+
+// ── INIT ────────────────────────────────────────────────
+async function init() {
+  startClocks();
+  document.getElementById('focus-date').textContent =
+    new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  await loadAll();
+  populateFilters();
+  renderToday();
+  renderAllTasks();
+  // Weekly summary (hidden for now — re-enable when tab is added)
+  // document.getElementById('weekly-details')?.addEventListener('toggle', e => {
+  //   if (e.target.open) renderWeeklySummary();
+  // });
+}
+
+async function loadAll() {
+  const [tRes, tmRes, cRes, wsRes, fsRes, yfRes] = await Promise.all([
+    sb.from('tasks').select('*').neq('status','done').neq('status','deleted').order('created_at',{ascending:false}),
+    sb.from('team_members').select('*').eq('active',true),
+    sb.from('customers').select('*').eq('active',true),
+    sb.from('workstreams').select('*').eq('active',true),
+    sb.from('focus_sessions').select('*,tasks(id,title,customer,workstream,type,priority,status)').eq('date',TODAY),
+    sb.from('focus_sessions').select('*,tasks(id,title,customer,workstream,type,priority,status)').eq('date',YESTERDAY)
+  ]);
+  tasks         = tRes.data  || [];
+  teamMembers   = tmRes.data || [];
+  customers     = cRes.data  || [];
+  workstreams   = wsRes.data || [];
+  focusSessions = fsRes.data || [];
+  yesterdayFS   = yfRes.data || [];
+}
+
+async function loadCompleted() {
+  const {data} = await sb.from('tasks').select('*').eq('status','done')
+    .order('completed_at',{ascending:false}).limit(150);
+  completedTasks = data || [];
+}
+
+// ── CLOCKS ──────────────────────────────────────────────
+function startClocks() {
+  const zones=[{c:'IST',tz:'Asia/Kolkata'},{c:'AU',tz:'Australia/Sydney'},
+    {c:'UK',tz:'Europe/London'},{c:'UAE',tz:'Asia/Dubai'},{c:'ET',tz:'America/New_York'}];
+  const upd=()=>{ document.getElementById('clocks').innerHTML=zones.map(z=>{
+    const t=new Date().toLocaleTimeString('en-US',{timeZone:z.tz,hour:'2-digit',minute:'2-digit',hour12:false});
+    return `<div class="clock-item"><span class="clock-city">${z.c}</span><span>${t}</span></div>`;
+  }).join(''); };
+  upd(); setInterval(upd,30000);
+}
+
+// ── POPULATE FILTERS ────────────────────────────────────
+function populateFilters() {
+  const cOpts  = customers.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  const wsOpts = workstreams.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
+  const tOpts  = ['Me',...teamMembers.map(m=>m.name)].map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  const reqs   = [...new Set(tasks.filter(t=>t.requester).map(t=>t.requester))].sort();
+  const rOpts  = reqs.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+
+  [['t-cust','a-cust','c-cust'],'Any customer'].forEach(()=>{});
+  setOpts('t-cust','Any customer',cOpts); setOpts('a-cust','Any customer',cOpts); setOpts('c-cust','Any customer',cOpts);
+  setOpts('t-ws','Any workstream',wsOpts); setOpts('a-ws','Any workstream',wsOpts); setOpts('c-ws','Any workstream',wsOpts);
+  setOpts('a-assignee','Any assignee',tOpts);
+  setOpts('a-req','Any requester',rOpts); setOpts('c-req','Any requester',rOpts);
+  document.getElementById('f-customer').innerHTML='<option value="">—</option>'+cOpts;
+  document.getElementById('f-assignee').innerHTML=tOpts;
+  document.getElementById('d-to').innerHTML='<option value="">— select teammate —</option>'+tOpts;
+  // Requester dropdown in add/edit modal (from requesters list, no "Me")
+  const reqMemberOpts=teamMembers.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('');
+  document.getElementById('f-requester').innerHTML='<option value="">—</option>'+reqMemberOpts;
+  // Workstream dropdown in add/edit modal
+  document.getElementById('f-workstream').innerHTML='<option value="">—</option>'+wsOpts;
+}
+function setOpts(id, placeholder, opts) {
+  const el=document.getElementById(id);
+  if(el) el.innerHTML=`<option value="">${placeholder}</option>`+opts;
+}
+
+// ── TODAY TAB ───────────────────────────────────────────
+function renderToday() {
+  renderMorningBanner();
+  renderFocusSlots();
+  renderTodayTasks();
+}
+
+function renderMorningBanner() {
+  const banner = document.getElementById('morning-banner');
+  const hasFocus = focusSessions.length > 0;
+  if (!hasFocus) {
+    banner.classList.remove('hidden');
+    const inc = yesterdayFS.filter(s=>!s.completed).length;
+    document.getElementById('morning-msg').textContent = inc > 0
+      ? `${inc} incomplete focus item(s) from yesterday to carry forward.`
+      : "You haven't set today's focus yet.";
+  } else { banner.classList.add('hidden'); }
+}
+
+function renderFocusSlots() {
+  const el = document.getElementById('focus-slots');
+  if (!focusSessions.length) {
+    el.innerHTML=`<div class="focus-slot empty" onclick="openMorningPlan()">
+      <span style="font-size:18px">⭐</span>
+      <span>No focus set — click to plan your day</span></div>`;
+    return;
+  }
+  const sorted=[...focusSessions].sort((a,b)=>a.slot-b.slot);
+  el.innerHTML=sorted.map(s=>{
+    const tk=s.tasks||{};
+    const cls=s.completed?'done':s.not_done_today?'not-done-today':'';
+    const statusBadge=s.completed
+      ?'<span class="status-badge done">✓ Done</span>'
+      :s.not_done_today?'<span class="status-badge not-today">✗ Not done today</span>':'';
+    const carriedBadge=s.carried_forward?'<span class="carried-badge">↩ Carried</span>':'';
+    const typeBadge=tk.type?`<span class="badge b-${cleanType(tk.type)}">${cap(tk.type)}</span>`:'';
+    const custBadge=tk.customer?`<span class="badge b-customer">${esc(tk.customer)}</span>`:'';
+    const actionBtn=(!s.completed&&!s.not_done_today)
+      ?`<button class="btn btn-sm btn-success btn-icon" onclick="markFocusDone('${s.id}')" title="Mark done">✓</button>`:'';
+    return `<div class="focus-slot ${cls}">
+      <span class="focus-num">${s.slot}</span>
+      <div class="focus-title-text">${esc(tk.title||'(deleted task)')}</div>
+      <div class="focus-meta">${carriedBadge}${typeBadge}${custBadge}${statusBadge}</div>
+      <div class="focus-actions">${actionBtn}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTodayTasks() {
+  const pri=v('t-pri'), type=v('t-type'), cust=v('t-cust'), ws=v('t-ws');
+  const q=v('t-search').toLowerCase();
+  const focusIds=new Set(focusSessions.map(s=>s.task_id));
+  let filtered=tasks.filter(t=>{
+    if(t.status==='done') return false;
+    if(pri&&t.priority!==pri) return false;
+    if(type&&t.type!==type) return false;
+    if(cust&&t.customer!==cust) return false;
+    if(ws&&!(t.workstream||'').includes(ws)) return false;
+    if(q&&!(t.title||'').toLowerCase().includes(q)&&!(t.requester||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const pOrd={high:0,medium:1,low:2};
+  filtered.sort((a,b)=>{
+    const af=focusIds.has(a.id)?0:1, bf=focusIds.has(b.id)?0:1;
+    if(af!==bf) return af-bf;
+    return (pOrd[a.priority]??3)-(pOrd[b.priority]??3);
+  });
+  document.getElementById('today-count').textContent=`(${filtered.length})`;
+  const list=document.getElementById('today-list');
+  list.innerHTML=filtered.length
+    ?filtered.map(t=>taskCard(t,{showFocus:true,isPinned:focusIds.has(t.id)})).join('')
+    :'<li class="task-empty">No tasks matching filters.</li>';
+}
+
+// ── ALL TASKS ───────────────────────────────────────────
+function renderAllTasks() {
+  const status=v('a-status'),pri=v('a-pri'),type=v('a-type'),chan=v('a-chan');
+  const cust=v('a-cust'),ws=v('a-ws'),assignee=v('a-assignee'),req=v('a-req');
+  const q=v('a-search').toLowerCase();
+  let filtered=tasks.filter(t=>{
+    if(t.status==='done') return false;
+    if(status&&t.status!==status) return false;
+    if(pri&&t.priority!==pri) return false;
+    if(type&&t.type!==type) return false;
+    if(cust&&t.customer!==cust) return false;
+    if(ws&&!(t.workstream||'').includes(ws)) return false;
+    if(assignee&&t.assigned_to!==assignee) return false;
+    if(req&&t.requester!==req) return false;
+    if(chan){ const ch=channel(t.source);
+      if(chan==='none'&&ch!==null) return false;
+      if(chan!=='none'&&ch!==chan) return false; }
+    if(q&&!(t.title||'').toLowerCase().includes(q)&&
+       !(t.requester||'').toLowerCase().includes(q)&&
+       !(t.description||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const pOrd={high:0,medium:1,low:2};
+  filtered.sort((a,b)=>(pOrd[a.priority]??3)-(pOrd[b.priority]??3));
+  document.getElementById('all-count').textContent=`(${filtered.length})`;
+  const list=document.getElementById('all-list');
+  list.innerHTML=filtered.length
+    ?filtered.map(t=>taskCard(t,{showFocus:true})).join('')
+    :'<li class="task-empty">No tasks matching filters.</li>';
+}
+
+// ── COMPLETED ───────────────────────────────────────────
+async function renderCompleted() {
+  document.getElementById('comp-list').innerHTML='<li class="task-loading">Loading…</li>';
+  await loadCompleted();
+  const cust=v('c-cust'),ws=v('c-ws'),req=v('c-req'),q=v('c-search').toLowerCase();
+  let filtered=completedTasks.filter(t=>{
+    if(cust&&t.customer!==cust) return false;
+    if(ws&&!(t.workstream||'').includes(ws)) return false;
+    if(req&&t.requester!==req) return false;
+    if(q&&!(t.title||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('comp-count').textContent=`(${filtered.length})`;
+  const list=document.getElementById('comp-list');
+  list.innerHTML=filtered.length
+    ?filtered.map(t=>taskCard(t,{isCompleted:true})).join('')
+    :'<li class="task-empty">No completed tasks yet.</li>';
+}
+
+// ── WEEKLY SUMMARY ──────────────────────────────────────
+async function renderWeeklySummary() {
+  const body=document.getElementById('weekly-body');
+  body.innerHTML='<div class="task-loading">Loading…</div>';
+  const now=new Date();
+  const dow=now.getDay();
+  const mon=new Date(now); mon.setDate(now.getDate()-(dow===0?6:dow-1));
+  const weekStart=mon.toISOString().split('T')[0];
+  const {data:sessions}=await sb.from('focus_sessions')
+    .select('*,tasks(id,title,customer,workstream,type,priority,status)')
+    .gte('date',weekStart).lte('date',TODAY);
+  weeklyCache=sessions||[];
+  if(!weeklyCache.length){
+    body.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">No focus sessions this week yet.</div>';
+    return;
+  }
+  const total=weeklyCache.length;
+  const done=weeklyCache.filter(s=>s.completed).length;
+  const notDone=weeklyCache.filter(s=>s.not_done_today&&!s.completed).length;
+  const byCust={}, byWS={};
+  weeklyCache.forEach(s=>{
+    const c=(s.tasks?.customer)||'Uncategorised';
+    const w=(s.tasks?.workstream||'').split(',')[0].trim()||'Uncategorised';
+    if(!byCust[c]) byCust[c]={total:0,done:0};
+    if(!byWS[w]) byWS[w]={total:0,done:0};
+    byCust[c].total++; if(s.completed) byCust[c].done++;
+    byWS[w].total++;   if(s.completed) byWS[w].done++;
+  });
+  const incomplete=weeklyCache.filter(s=>s.not_done_today&&!s.completed);
+  const wLabel=`${mon.toLocaleDateString('en-GB',{day:'numeric',month:'short'})} – ${now.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`;
+  body.innerHTML=`
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">${wLabel}</div>
+    <div class="weekly-stats">
+      <div class="w-stat total"><div class="w-stat-num">${total}</div><div class="w-stat-label">Focus Set</div></div>
+      <div class="w-stat done"><div class="w-stat-num">${done}</div><div class="w-stat-label">Completed</div></div>
+      <div class="w-stat notdone"><div class="w-stat-num">${notDone}</div><div class="w-stat-label">Not Done</div></div>
+    </div>
+    <div class="weekly-tables">
+      <div class="wt-section"><h4>By Customer</h4>
+        <table class="mini-table"><tr><th>Customer</th><th>Set</th><th>Done</th></tr>
+        ${Object.entries(byCust).sort((a,b)=>b[1].total-a[1].total).map(([c,v])=>
+          `<tr><td>${esc(c)}</td><td>${v.total}</td><td style="color:var(--success)">${v.done}</td></tr>`).join('')}
+        </table></div>
+      <div class="wt-section"><h4>By Workstream</h4>
+        <table class="mini-table"><tr><th>Workstream</th><th>Set</th><th>Done</th></tr>
+        ${Object.entries(byWS).sort((a,b)=>b[1].total-a[1].total).map(([w,val])=>
+          `<tr><td>${esc(w)}</td><td>${val.total}</td><td style="color:var(--success)">${val.done}</td></tr>`).join('')}
+        </table></div>
+    </div>
+    ${incomplete.length?`<div class="incomplete-list"><h4>Not done this week (${incomplete.length})</h4>
+      ${incomplete.map(s=>`<div class="incomplete-item"><strong>${esc(s.tasks?.title||'(deleted)')}</strong>
+        ${s.tasks?.customer?' · '+esc(s.tasks.customer):''}
+        <span style="color:var(--muted)"> · ${s.date}</span></div>`).join('')}
+    </div>`:''}
+    <div style="display:flex;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-sm" onclick="exportWeekly()">⬇ Export JSON</button>
+    </div>`;
+}
+
+function exportWeekly() {
+  const blob=new Blob([JSON.stringify(weeklyCache,null,2)],{type:'application/json'});
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`pmos-focus-${TODAY}.json`});
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── TASK CARD ───────────────────────────────────────────
+function taskCard(t, opts={}) {
+  const {showFocus=false,isPinned=false,isCompleted=false}=opts;
+  const stale=!isCompleted&&daysSince(t.created_at)>7;
+  const ch=channel(t.source);
+  const chIcon=ch==='teams'?'🔷':ch==='outlook'?'📧':ch==='document'?'📄':'';
+  let etaBadge='';
+  if(t.due_date&&!isCompleted){
+    const d=daysUntil(t.due_date);
+    if(d<0) etaBadge=`<span class="badge b-overdue">Overdue ${Math.abs(d)}d</span>`;
+    else if(d===0) etaBadge='<span class="badge b-due-today">Due today</span>';
+    else if(d<=3) etaBadge=`<span class="badge b-soon">Due in ${d}d</span>`;
+  }
+  let awBadge='';
+  if(t.awaiting_since){
+    const d=daysSince(t.awaiting_since);
+    awBadge=`<span class="badge ${d>=3?'b-waiting-hot':'b-waiting'}">⏳ Waiting ${d}d</span>`;
+  }
+  const focusBtn=showFocus&&!isCompleted
+    ?`<button class="btn btn-sm btn-icon btn-focus${isPinned?' is-focus':''}"
+        onclick="toggleFocus('${t.id}')" title="${isPinned?'Remove from focus':'Set as focus'}">⭐</button>`:'' ;
+  const editBtn=`<button class="btn btn-sm btn-icon" onclick="openEditTask('${t.id}')" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
+  const doneBtn=!isCompleted
+    ?`<button class="btn btn-sm btn-icon btn-success" onclick="openCompleteModal('${t.id}')" title="Done">✓</button>`:'';
+  const remarks=isCompleted&&t.completion_remarks
+    ?`<div class="remarks-preview">${esc(t.completion_remarks.substring(0,120))}${t.completion_remarks.length>120?'…':''}</div>`:'';
+  return `<li class="task-card${isPinned?' focus-pinned':''}${stale?' stale':''}">
+    ${!isCompleted
+      ?`<div class="task-check" onclick="openCompleteModal('${t.id}')"></div>`
+      :'<div style="width:18px;flex-shrink:0;color:var(--success);margin-top:2px">✓</div>'}
+    <div class="task-body">
+      <div class="task-title-row">
+        <span class="task-title">${esc(t.title)}</span>
+        <div class="task-badges">
+          ${isPinned?'<span class="badge b-focus">⭐ Focus</span>':''}
+          ${t.priority?`<span class="badge b-${t.priority}">${cap(t.priority)}</span>`:''}
+          ${t.type?`<span class="badge b-${cleanType(t.type)}">${cap(t.type)}</span>`:''}
+          ${t.customer?`<span class="badge b-customer">${esc(t.customer)}</span>`:''}
+          ${(t.workstream||'').split(',').filter(Boolean).slice(0,2).map(w=>`<span class="badge b-ws">${esc(w.trim())}</span>`).join('')}
+          ${chIcon?`<span class="badge b-channel">${chIcon} ${cap(ch)}</span>`:''}
+          ${etaBadge}${awBadge}
+        </div>
+      </div>
+      <div class="task-meta">
+        ${t.requester?`<span>from ${esc(t.requester)}</span>`:''}
+        ${t.assigned_to&&t.assigned_to!=='Me'?`<span style="color:var(--primary);font-weight:500">→ ${esc(t.assigned_to)}</span>`:''}
+        ${t.source?`<a href="${t.source}" target="_blank" class="task-link">Open thread ↗</a>`:''}
+        ${isCompleted&&t.completed_at?`<span>Done ${new Date(t.completed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>`:''}
+      </div>
+      ${remarks}
+    </div>
+    <div class="task-actions">${focusBtn}${editBtn}${doneBtn}</div>
+  </li>`;
+}
+
+// ── FOCUS CRUD ──────────────────────────────────────────
+async function toggleFocus(taskId) {
+  const ex=focusSessions.find(s=>s.task_id===taskId);
+  if(ex){
+    await sb.from('focus_sessions').delete().eq('id',ex.id);
+    focusSessions=focusSessions.filter(s=>s.id!==ex.id);
+  } else {
+    if(focusSessions.length>=3){alert('Max 3 focus tasks per day.');return;}
+    const used=new Set(focusSessions.map(s=>s.slot));
+    const slot=[1,2,3].find(n=>!used.has(n));
+    const {data}=await sb.from('focus_sessions')
+      .insert({date:TODAY,task_id:taskId,slot,carried_forward:false})
+      .select('*,tasks(id,title,customer,workstream,type,priority,status)').single();
+    if(data) focusSessions.push(data);
+  }
+  renderMorningBanner(); renderFocusSlots(); renderTodayTasks();
+}
+
+async function markFocusDone(sid) {
+  await sb.from('focus_sessions').update({completed:true}).eq('id',sid);
+  const s=focusSessions.find(s=>s.id===sid); if(s) s.completed=true;
+  renderFocusSlots();
+}
+
+// ── END DAY ─────────────────────────────────────────────
+async function endDay() {
+  const unfinished=focusSessions.filter(s=>!s.completed);
+  if(!unfinished.length){alert('All focus tasks are done! Great work today.');return;}
+  if(!confirm(`Mark ${unfinished.length} unfinished focus task(s) as "Not done today"?`)) return;
+  await sb.from('focus_sessions').update({not_done_today:true}).in('id',unfinished.map(s=>s.id));
+  unfinished.forEach(s=>s.not_done_today=true);
+  renderFocusSlots();
+}
+
+// ── MORNING PLAN MODAL ──────────────────────────────────
+function openMorningPlan() {
+  planSel=new Set(focusSessions.map(s=>s.task_id));
+  const inc=yesterdayFS.filter(s=>!s.completed);
+  const carrySection=document.getElementById('carry-section');
+  if(inc.length){
+    carrySection.style.display='block';
+    document.getElementById('carry-list').innerHTML=inc.map(s=>{
+      const tk=s.tasks||{};
+      return `<div class="pick-item${planSel.has(s.task_id)?' selected':''}" id="ci-${s.task_id}" onclick="togglePlan('${s.task_id}',true)">
+        <div><div class="pick-title">${esc(tk.title||'(deleted)')}</div>
+        <div class="pick-meta">${tk.customer?esc(tk.customer)+' · ':''}${tk.type?cap(tk.type):''} · was focus on ${YESTERDAY}</div></div>
+      </div>`;
+    }).join('');
+  } else { carrySection.style.display='none'; }
+  document.getElementById('mp-search').value='';
+  renderPicker('');
+  updatePlanSummary();
+  document.getElementById('mp-modal').classList.add('open');
+}
+
+function renderPicker(q) {
+  const yestIds=new Set(yesterdayFS.map(s=>s.task_id));
+  const avail=tasks.filter(t=>{
+    if(t.status==='done') return false;
+    if(yestIds.has(t.id)) return false;
+    if(q&&!(t.title||'').toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  });
+  document.getElementById('task-picker').innerHTML=avail.length
+    ?avail.map(t=>`<div class="pick-item${planSel.has(t.id)?' selected':''}" id="pi-${t.id}" onclick="togglePlan('${t.id}',false)">
+        <div><div class="pick-title">${esc(t.title)}</div>
+        <div class="pick-meta">${t.priority?cap(t.priority)+' · ':''}${t.type?cap(t.type):''}${t.customer?' · '+esc(t.customer):''}</div></div>
+      </div>`).join('')
+    :'<div style="color:var(--muted);font-size:12px;padding:8px">No open tasks found.</div>';
+}
+
+function filterPicker(){renderPicker(document.getElementById('mp-search').value);}
+
+function togglePlan(taskId, isCarry){
+  if(planSel.has(taskId)) planSel.delete(taskId);
+  else {
+    if(planSel.size>=3){alert('Max 3 focus tasks.');return;}
+    planSel.add(taskId);
+  }
+  const ci=document.getElementById(`ci-${taskId}`);
+  const pi=document.getElementById(`pi-${taskId}`);
+  if(ci) ci.classList.toggle('selected',planSel.has(taskId));
+  if(pi) pi.classList.toggle('selected',planSel.has(taskId));
+  updatePlanSummary();
+}
+
+function updatePlanSummary(){
+  document.getElementById('slots-left').textContent=3-planSel.size;
+  const prev=document.getElementById('sel-preview');
+  const list=document.getElementById('sel-list');
+  if(!planSel.size){prev.classList.add('hidden');return;}
+  prev.classList.remove('hidden');
+  const yestMap=Object.fromEntries(yesterdayFS.map(s=>[s.task_id,s.tasks]));
+  const tMap=Object.fromEntries(tasks.map(t=>[t.id,t]));
+  list.innerHTML=[...planSel].map((id,i)=>{
+    const t=tMap[id]||yestMap[id]||{title:id};
+    return `<div style="font-size:12px;padding:2px 0">${i+1}. ${esc(t.title||id)}</div>`;
+  }).join('');
+}
+
+async function saveMorningPlan(){
+  if(focusSessions.length) await sb.from('focus_sessions').delete().eq('date',TODAY);
+  if(!planSel.size){focusSessions=[];closeMorningPlan();renderToday();return;}
+  const yestIds=new Set(yesterdayFS.map(s=>s.task_id));
+  const inserts=[...planSel].map((taskId,i)=>({
+    date:TODAY,task_id:taskId,slot:i+1,carried_forward:yestIds.has(taskId)
+  }));
+  const {data}=await sb.from('focus_sessions')
+    .insert(inserts).select('*,tasks(id,title,customer,workstream,type,priority,status)');
+  focusSessions=data||[];
+  closeMorningPlan(); renderToday();
+}
+function closeMorningPlan(){document.getElementById('mp-modal').classList.remove('open');}
+
+// ── ADD / EDIT TASK ─────────────────────────────────────
+function openAddTask(){
+  document.getElementById('add-modal-title').textContent='Add task';
+  document.getElementById('f-id').value='';
+  document.getElementById('delete-btn').classList.add('hidden');
+  ['f-title','f-desc','f-requester','f-source','f-workstream'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('f-priority').value='medium';
+  document.getElementById('f-type').value='';
+  document.getElementById('f-customer').value='';
+  document.getElementById('f-assignee').value='Me';
+  document.getElementById('f-due').value='';
+  document.getElementById('f-awaiting').value='';
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function openEditTask(id){
+  const t=tasks.find(t=>t.id===id); if(!t) return;
+  document.getElementById('add-modal-title').textContent='Edit task';
+  document.getElementById('f-id').value=t.id;
+  document.getElementById('delete-btn').classList.remove('hidden');
+  document.getElementById('f-title').value=t.title||'';
+  document.getElementById('f-desc').value=t.description||'';
+  document.getElementById('f-priority').value=t.priority||'medium';
+  document.getElementById('f-type').value=t.type||'';
+  document.getElementById('f-customer').value=t.customer||'';
+  document.getElementById('f-assignee').value=t.assigned_to||'Me';
+  document.getElementById('f-due').value=t.due_date||'';
+  document.getElementById('f-awaiting').value=t.awaiting_since||'';
+  document.getElementById('f-requester').value=t.requester||'';
+  document.getElementById('f-source').value=t.source||'';
+  document.getElementById('f-workstream').value=t.workstream||'';
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function closeAddModal(){document.getElementById('add-modal').classList.remove('open');}
+
+async function saveTask(){
+  const id=document.getElementById('f-id').value;
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){alert('Title is required.');return;}
+  const data={
+    title,
+    description:document.getElementById('f-desc').value.trim()||null,
+    priority:document.getElementById('f-priority').value,
+    type:document.getElementById('f-type').value||null,
+    customer:document.getElementById('f-customer').value||null,
+    assigned_to:document.getElementById('f-assignee').value||'Me',
+    due_date:document.getElementById('f-due').value||null,
+    awaiting_since:document.getElementById('f-awaiting').value||null,
+    requester:document.getElementById('f-requester').value.trim()||null,
+    source:document.getElementById('f-source').value.trim()||null,
+    workstream:document.getElementById('f-workstream').value.trim()||null,
+    updated_at:new Date().toISOString()
+  };
+  if(id){
+    await sb.from('tasks').update(data).eq('id',id);
+    const i=tasks.findIndex(t=>t.id===id); if(i>=0) tasks[i]={...tasks[i],...data};
+  } else {
+    data.status='open'; data.created_at=new Date().toISOString();
+    const {data:nt}=await sb.from('tasks').insert(data).select().single();
+    if(nt) tasks.unshift(nt);
+  }
+  closeAddModal(); renderTodayTasks(); renderAllTasks(); populateFilters();
+}
+
+async function deleteTask(){
+  const id=document.getElementById('f-id').value;
+  if(!id||!confirm('Delete this task?')) return;
+  const now=new Date().toISOString();
+  await sb.from('tasks').update({status:'deleted',updated_at:now}).eq('id',id);
+  tasks=tasks.filter(t=>t.id!==id);
+  focusSessions=focusSessions.filter(s=>s.task_id!==id);
+  closeAddModal(); renderTodayTasks(); renderAllTasks(); renderFocusSlots();
+}
+
+// ── COMPLETE TASK ───────────────────────────────────────
+function openCompleteModal(id){
+  document.getElementById('complete-id').value=id;
+  document.getElementById('complete-remarks').value='';
+  document.getElementById('complete-modal').classList.add('open');
+}
+function closeCompleteModal(){document.getElementById('complete-modal').classList.remove('open');}
+async function saveComplete(){await completeTask(document.getElementById('complete-id').value,document.getElementById('complete-remarks').value.trim());}
+async function skipRemarks(){await completeTask(document.getElementById('complete-id').value,null);}
+async function completeTask(id,remarks){
+  const now=new Date().toISOString();
+  const upd={status:'done',completed_at:now,updated_at:now};
+  if(remarks) upd.completion_remarks=remarks;
+  await sb.from('tasks').update(upd).eq('id',id);
+  const fs=focusSessions.find(s=>s.task_id===id);
+  if(fs){await sb.from('focus_sessions').update({completed:true}).eq('id',fs.id);fs.completed=true;}
+  tasks=tasks.filter(t=>t.id!==id);
+  closeCompleteModal(); renderTodayTasks(); renderAllTasks(); renderFocusSlots();
+}
+
+// ── DELEGATE ────────────────────────────────────────────
+function openDelegateModal(id){
+  document.getElementById('d-id').value=id;
+  document.getElementById('d-context').value='';
+  document.getElementById('delegate-modal').classList.add('open');
+}
+function closeDelegateModal(){document.getElementById('delegate-modal').classList.remove('open');}
+async function approveDelegation(){
+  const id=document.getElementById('d-id').value;
+  const ctx=document.getElementById('d-context').value;
+  const t=tasks.find(t=>t.id===id);
+  const msg=`[Delegating: ${t?.title||id}]\n\n${ctx}`;
+  await sb.from('tasks').update({status:'delegated',delegation_context:ctx,
+    delegation_channel:document.getElementById('d-channel').value,updated_at:new Date().toISOString()}).eq('id',id);
+  await navigator.clipboard.writeText(msg).catch(()=>{});
+  alert('Message copied to clipboard!');
+  const i=tasks.findIndex(t=>t.id===id); if(i>=0) tasks[i].status='delegated';
+  closeDelegateModal(); renderAllTasks(); renderTodayTasks();
+}
+
+// ── SETTINGS ────────────────────────────────────────────
+function renderSettings(){
+  document.getElementById('team-list').innerHTML=teamMembers.map(m=>
+    `<li class="s-item"><span class="s-name">${esc(m.name)}</span><button class="btn btn-sm btn-danger btn-icon" onclick="rmTeam('${m.id}')">✕</button></li>`).join('');
+  document.getElementById('ws-list').innerHTML=workstreams.map(w=>
+    `<li class="s-item"><span class="s-name">${esc(w.name)}</span><button class="btn btn-sm btn-danger btn-icon" onclick="rmWS('${w.id}')">✕</button></li>`).join('');
+  document.getElementById('cust-list').innerHTML=customers.map(c=>
+    `<li class="s-item"><span class="s-name">${esc(c.name)}</span><button class="btn btn-sm btn-danger btn-icon" onclick="rmCust('${c.id}')">✕</button></li>`).join('');
+}
+async function addTeamMember(){const n=document.getElementById('new-team').value.trim();if(!n)return;const{data}=await sb.from('team_members').insert({name:n,active:true}).select().single();if(data){teamMembers.push(data);renderSettings();populateFilters();}document.getElementById('new-team').value='';}
+async function rmTeam(id){await sb.from('team_members').update({active:false}).eq('id',id);teamMembers=teamMembers.filter(m=>m.id!==id);renderSettings();populateFilters();}
+async function addWorkstream(){const n=document.getElementById('new-ws').value.trim();if(!n)return;const{data}=await sb.from('workstreams').insert({name:n,active:true}).select().single();if(data){workstreams.push(data);renderSettings();populateFilters();}document.getElementById('new-ws').value='';}
+async function rmWS(id){await sb.from('workstreams').update({active:false}).eq('id',id);workstreams=workstreams.filter(w=>w.id!==id);renderSettings();populateFilters();}
+async function addCustomer(){const n=document.getElementById('new-cust').value.trim();if(!n)return;const{data}=await sb.from('customers').insert({name:n,active:true}).select().single();if(data){customers.push(data);renderSettings();populateFilters();}document.getElementById('new-cust').value='';}
+async function rmCust(id){await sb.from('customers').update({active:false}).eq('id',id);customers=customers.filter(c=>c.id!==id);renderSettings();populateFilters();}
+
+// ── TABS ────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
+    if(this.dataset.tab==='completed') renderCompleted();
+    if(this.dataset.tab==='settings') renderSettings();
+  });
+});
+
+// Close modal on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');});
+});
+
+// ── HELPERS ─────────────────────────────────────────────
+const v=id=>document.getElementById(id)?.value||'';
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):'';
+function cleanType(t){return{email:'other',doc:'other',teams:'other'}[t]||t||'other';}
+function channel(src){
+  if(!src) return null;
+  if(src.includes('teams.microsoft.com')) return 'teams';
+  if(src.includes('outlook.office')) return 'outlook';
+  if(src.includes('sharepoint.com')||src.includes('onedrive')) return 'document';
+  if(src.startsWith('http')) return 'other';
+  return null;
+}
+function daysSince(d){return Math.floor((Date.now()-new Date(d))/86400000);}
+function daysUntil(d){const x=new Date(d);x.setHours(23,59,59);return Math.ceil((x-Date.now())/86400000);}
+
+// ── BOOT ────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
