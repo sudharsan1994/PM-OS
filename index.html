@@ -226,6 +226,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .role-item{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:var(--surface2);border-radius:6px;margin-bottom:5px}
 .role-name{font-size:12px;font-weight:600;min-width:80px;flex-shrink:0}
 .role-desc{font-size:12px;color:var(--muted);flex:1}
+
+/* OUTCOME METRICS */
+.outcome-section{border-top:1px solid var(--border);margin-top:14px;padding-top:14px}
+.outcome-toggle{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);user-select:none}
+.outcome-toggle:hover{color:var(--text)}
+.outcome-body{margin-top:12px}
+.metric-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px}
+.metric-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.metric-name{font-size:13px;font-weight:600}
+.metric-ws{font-size:11px;color:var(--muted)}
+.metric-trend{display:flex;gap:4px;align-items:flex-end;height:32px}
+.metric-bar{width:10px;border-radius:2px 2px 0 0;background:var(--primary);opacity:.6;transition:all .2s}
+.metric-bar.latest{opacity:1}
+.metric-bar.down-good{background:var(--success)}
+.metric-bar.up-good{background:var(--primary)}
+.metric-value-row{display:flex;align-items:baseline;gap:6px;margin-top:6px}
+.metric-current{font-size:20px;font-weight:700}
+.metric-delta{font-size:12px;padding:2px 6px;border-radius:4px;font-weight:500}
+.metric-delta.up{background:var(--success-bg);color:var(--success)}
+.metric-delta.down{background:var(--danger-bg);color:var(--danger)}
+.metric-delta.neutral{background:var(--surface2);color:var(--muted)}
+.outcome-metrics-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.om-def-row{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--surface2);border-radius:6px;margin-bottom:4px;font-size:12px}
+.om-def-name{flex:1;font-weight:500}
+.om-def-unit{color:var(--muted);font-size:11px}
+.om-def-dir{font-size:11px;color:var(--muted)}
 .hidden{display:none!important}
 @media(max-width:768px){.a-grid{grid-template-columns:1fr 1fr}.a-charts-row{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.clocks{gap:8px}}
 </style>
@@ -236,7 +262,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.69 · 2026-05-14</div>
+  <div class="app-version">v1.70 · 2026-05-14</div>
 </header>
 
 <nav class="tab-nav">
@@ -382,6 +408,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="a-chart-title">4-week completion trend</div>
     <div class="a-chart-wrap" style="height:180px"><canvas id="chart-trend"></canvas></div>
   </div>
+  <div class="a-chart-card" id="outcome-analytics-card" style="margin-bottom:14px">
+    <div class="a-chart-title">Outcome metrics</div>
+    <div id="outcome-analytics"><div class="task-loading">Loading…</div></div>
+  </div>
   <div class="a-spotlight" id="analytics-spotlight" style="display:none">
     <div class="a-spotlight-title">Most deferred open tasks</div>
     <div id="analytics-deferred-list"></div>
@@ -420,6 +450,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="ss-title">Customers</div>
     <ul class="s-list" id="cust-list"></ul>
     <div class="s-add"><input class="s-input" id="new-cust" placeholder="Add customer…" onkeydown="if(event.key==='Enter')addCustomer()"><button class="btn btn-sm btn-primary" onclick="addCustomer()">Add</button></div>
+  </div>
+  <div class="settings-section">
+    <div class="ss-title">Outcome Metrics <span style="font-size:10px;font-weight:400;color:var(--muted)">(per workstream)</span></div>
+    <div id="outcome-metrics-list"></div>
+    <div class="s-add" style="flex-wrap:wrap;gap:6px;margin-top:8px">
+      <select class="f-select" id="new-om-ws" style="flex:0 0 auto"><option value="">Workstream…</option></select>
+      <input class="s-input" id="new-om-name" placeholder="Metric name (e.g. Deflection Rate)">
+      <select class="f-select" id="new-om-unit" style="flex:0 0 auto"><option value="%">%</option><option value="count">count</option><option value="hours">hrs</option><option value="days">days</option><option value="score">score</option></select>
+      <select class="f-select" id="new-om-dir" style="flex:0 0 auto"><option value="up_good">↑ higher=better</option><option value="down_good">↓ lower=better</option></select>
+      <button class="btn btn-sm btn-primary" onclick="addOutcomeMetric()">Add</button>
+    </div>
   </div>
   <div class="settings-section">
     <div class="ss-title">Team Roles <span style="font-size:10px;font-weight:400;color:var(--muted)">(used for AI triage)</span></div>
@@ -536,6 +577,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div id="dc-participants" class="chip-container"></div>
     </div>
   </div>
+  <!-- OUTCOME METRIC SECTION -->
+  <div class="outcome-section hidden" id="outcome-section">
+    <div class="outcome-toggle" onclick="toggleOutcomeSection()">
+      <span id="outcome-toggle-arrow">▶</span>
+      📊 Did this task move a metric?
+    </div>
+    <div class="outcome-body hidden" id="outcome-body">
+      <div class="form-row" style="margin-top:10px">
+        <div class="form-group">
+          <label class="form-label">Metric</label>
+          <select class="form-select" id="outcome-metric-select"><option value="">— select —</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">New value <span id="outcome-unit-label" style="font-weight:400;color:var(--muted)"></span></label>
+          <input class="form-input" id="outcome-new-value" type="number" step="any" placeholder="68">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Note (optional)</label>
+        <input class="form-input" id="outcome-note" placeholder="e.g. based on Thursday data pull">
+      </div>
+    </div>
+  </div>
   <!-- SATISFACTION PICKER -->
   <div class="form-group" id="sat-group" style="margin-top:14px">
     <label class="form-label">How do you feel about this task?</label>
@@ -637,7 +701,7 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const DEEP_TYPES=new Set(['create','review','investigate','decide']);
 
-let tasks=[],teamMembers=[],customers=[],workstreams=[],teamRoles=[];
+let tasks=[],teamMembers=[],customers=[],workstreams=[],teamRoles=[],outcomeMetrics=[];
 let focusSessions=[],yesterdayFS=[],completedTasks=[],decisions=[];
 let analyticsCompleted=[],analyticsDecisions28=[];
 let planSel=new Set();
@@ -667,11 +731,12 @@ async function loadAll(){
     sb.from('customers').select('*').eq('active',true),
     sb.from('workstreams').select('*').eq('active',true),
     sb.from('team_roles').select('*').eq('active',true),
+    sb.from('outcome_metrics').select('*').eq('active',true).order('workstream'),
     sb.from('focus_sessions').select('*,tasks(id,title,customer,workstream,type,priority,status,source,requester,due_date,awaiting_since,deferred_count)').eq('date',TODAY),
     sb.from('focus_sessions').select('*,tasks(id,title,customer,workstream,type,priority,status,source,requester,due_date,awaiting_since,deferred_count)').eq('date',YESTERDAY)
   ]);
   tasks=tR.data||[];teamMembers=tmR.data||[];customers=cR.data||[];workstreams=wsR.data||[];
-  focusSessions=fsR.data||[];yesterdayFS=yfR.data||[];teamRoles=_trR.data||[];
+  focusSessions=fsR.data||[];yesterdayFS=yfR.data||[];teamRoles=_trR.data||[];outcomeMetrics=_omR.data||[];
 }
 async function importPendingTasks(event){
   const file=event.target.files[0];
@@ -1088,6 +1153,7 @@ function renderAnalytics(){
   document.getElementById('analytics-spotlight').style.display='block';
 
   destroyCharts();
+  renderOutcomeAnalytics();
 
   // Donut: type split
   const deepCount=analyticsCompleted.filter(t=>DEEP_TYPES.has(t.type)).length;
@@ -1477,6 +1543,19 @@ function openCompleteModal(id){
   } else if(isCreate){
     document.getElementById('cc-link').value='';document.getElementById('complete-modal-title').textContent='Complete & log artifact';
   } else document.getElementById('complete-modal-title').textContent='Mark task complete';
+    // Populate outcome metrics for this task's workstream
+  const taskWS=(t.workstream||'').split(',')[0].trim();
+  const wsMetrics=outcomeMetrics.filter(m=>m.workstream===taskWS);
+  const omSection=document.getElementById('outcome-section');
+  if(wsMetrics.length>0){
+    omSection.classList.remove('hidden');
+    document.getElementById('outcome-metric-select').innerHTML='<option value="">— select metric —</option>'+wsMetrics.map(m=>`<option value="${m.id}" data-unit="${m.unit}" data-dir="${m.direction}">${m.metric_name} (${m.unit})</option>`).join('');
+    document.getElementById('outcome-new-value').value='';
+    document.getElementById('outcome-note').value='';
+    document.getElementById('outcome-body').classList.add('hidden');
+    document.getElementById('outcome-toggle-arrow').textContent='▶';
+    document.getElementById('outcome-unit-label').textContent='';
+  } else { omSection.classList.add('hidden'); }
   document.getElementById('complete-modal').classList.add('open');
 }
 function closeCompleteModal(){document.getElementById('complete-modal').classList.remove('open');}
@@ -1495,6 +1574,12 @@ async function skipRemarks(){await completeTask(document.getElementById('complet
 async function completeTask(id,remarks,decData,artifactLink){
   const now=new Date().toISOString();const upd={status:'done',completed_at:now,updated_at:now};
   if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');if(sat>0)upd.satisfaction=sat;
+  // outcome metric
+  const omSel=document.getElementById('outcome-metric-select');
+  const omVal=document.getElementById('outcome-new-value').value;
+  if(omSel&&omSel.value&&omVal!==''){
+    await sb.from('task_outcomes').insert({task_id:id,metric_id:omSel.value,new_value:parseFloat(omVal),note:document.getElementById('outcome-note').value.trim()||null,logged_at:new Date().toISOString().split('T')[0]});
+  }
   await sb.from('tasks').update(upd).eq('id',id);
   if(decData)await sb.from('decisions').insert(decData);
   const fs=focusSessions.find(s=>s.task_id===id);if(fs){await sb.from('focus_sessions').update({completed:true}).eq('id',fs.id);fs.completed=true;}
@@ -1515,6 +1600,7 @@ async function approveDelegation(){
 // ── SETTINGS ─────────────────────────────────────────
 function renderSettings(){
   renderTeamRoles();
+  renderOutcomeMetricsSettings();
   const chip=(label,onclick)=>`<span class="s-chip">${esc(label)}<button class="s-chip-del" onclick="${onclick}">✕</button></span>`;
   document.getElementById('team-list').innerHTML=`<div class="s-chips">${teamMembers.map(m=>chip(m.name,`rmTeam('${m.id}')`)).join('')||'<span style="font-size:12px;color:var(--muted)">None yet</span>'}</div>`;
   document.getElementById('ws-list').innerHTML=`<div class="s-chips">${workstreams.map(w=>chip(w.name,`rmWS('${w.id}')`)).join('')||'<span style="font-size:12px;color:var(--muted)">None yet</span>'}</div>`;
@@ -1699,6 +1785,120 @@ async function addTeamRole(){
 async function rmTeamRole(id){
   await sb.from('team_roles').update({active:false}).eq('id',id);
   teamRoles=teamRoles.filter(r=>r.id!==id);renderTeamRoles();
+}
+
+// ── OUTCOME METRICS ───────────────────────────────────
+function toggleOutcomeSection(){
+  const body=document.getElementById('outcome-body');
+  const arrow=document.getElementById('outcome-toggle-arrow');
+  const isHidden=body.classList.contains('hidden');
+  body.classList.toggle('hidden',!isHidden);
+  arrow.textContent=isHidden?'▼':'▶';
+}
+document.addEventListener('change',function(e){
+  if(e.target.id==='outcome-metric-select'){
+    const opt=e.target.selectedOptions[0];
+    const unit=opt?.dataset.unit||'';
+    document.getElementById('outcome-unit-label').textContent=unit?`(${unit})`:'';
+  }
+});
+
+function renderOutcomeMetricsSettings(){
+  const el=document.getElementById('outcome-metrics-list');if(!el)return;
+  // populate workstream dropdown
+  const wsEl=document.getElementById('new-om-ws');
+  if(wsEl&&workstreams.length){
+    wsEl.innerHTML='<option value="">Workstream…</option>'+workstreams.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
+  }
+  if(!outcomeMetrics.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px 0">No outcome metrics defined. Add metrics per workstream to start tracking what moves.</div>';
+    return;
+  }
+  // Group by workstream
+  const byWS={};
+  outcomeMetrics.forEach(m=>{if(!byWS[m.workstream])byWS[m.workstream]=[];byWS[m.workstream].push(m);});
+  el.innerHTML=Object.entries(byWS).map(([ws,metrics])=>`
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px">${esc(ws)}</div>
+      ${metrics.map(m=>`<div class="om-def-row">
+        <span class="om-def-name">${esc(m.metric_name)}</span>
+        <span class="om-def-unit">${esc(m.unit)}</span>
+        <span class="om-def-dir">${m.direction==='up_good'?'↑ higher=better':'↓ lower=better'}</span>
+        <button class="btn btn-sm btn-danger btn-icon" onclick="rmOutcomeMetric('${m.id}')">✕</button>
+      </div>`).join('')}
+    </div>`).join('');
+}
+
+async function addOutcomeMetric(){
+  const ws=document.getElementById('new-om-ws').value;
+  const name=document.getElementById('new-om-name').value.trim();
+  const unit=document.getElementById('new-om-unit').value;
+  const dir=document.getElementById('new-om-dir').value;
+  if(!ws||!name){alert('Select a workstream and enter a metric name.');return;}
+  const{data}=await sb.from('outcome_metrics').insert({workstream:ws,metric_name:name,unit,direction:dir,active:true}).select().single();
+  if(data){outcomeMetrics.push(data);renderOutcomeMetricsSettings();}
+  document.getElementById('new-om-name').value='';
+}
+
+async function rmOutcomeMetric(id){
+  await sb.from('outcome_metrics').update({active:false}).eq('id',id);
+  outcomeMetrics=outcomeMetrics.filter(m=>m.id!==id);
+  renderOutcomeMetricsSettings();
+}
+
+// ── OUTCOME ANALYTICS ─────────────────────────────────
+async function renderOutcomeAnalytics(){
+  const el=document.getElementById('outcome-analytics');if(!el)return;
+  if(!outcomeMetrics.length){el.innerHTML='<div style="color:var(--muted);font-size:13px">No outcome metrics defined yet. Add them in Settings → Outcome Metrics.</div>';return;}
+  // Fetch recent outcomes for all active metrics
+  const{data:allOutcomes}=await sb.from('task_outcomes').select('*').order('logged_at',{ascending:true}).limit(500);
+  const outcomes=allOutcomes||[];
+  // Group by metric
+  const byMetric={};
+  outcomes.forEach(o=>{if(!byMetric[o.metric_id])byMetric[o.metric_id]=[];byMetric[o.metric_id].push(o);});
+  el.innerHTML='<div class="outcome-metrics-grid">'+outcomeMetrics.map(m=>{
+    const logs=byMetric[m.id]||[];
+    const latest=logs[logs.length-1];
+    const prev=logs[logs.length-2];
+    const currentVal=latest?latest.new_value:null;
+    const delta=latest&&prev?latest.new_value-prev.new_value:null;
+    const isGood=delta===null?null:(m.direction==='up_good'?delta>0:delta<0);
+    const deltaClass=delta===null?'neutral':(isGood?'up':'down');
+    const deltaStr=delta===null?'':(delta>0?`+${delta.toFixed(1)}`:`${delta.toFixed(1)}`);
+    // Mini sparkline
+    const last8=logs.slice(-8);
+    const maxVal=Math.max(...last8.map(o=>o.new_value),0.001);
+    const bars=last8.map((o,i)=>{
+      const h=Math.max(4,Math.round(o.new_value/maxVal*28));
+      const isLatest=i===last8.length-1;
+      return`<div class="metric-bar ${m.direction} ${isLatest?'latest':''}" style="height:${h}px" title="${o.logged_at}: ${o.new_value}${m.unit}"></div>`;
+    }).join('');
+    return`<div class="metric-card">
+      <div class="metric-card-header">
+        <div><div class="metric-name">${esc(m.metric_name)}</div><div class="metric-ws">${esc(m.workstream)}</div></div>
+      </div>
+      <div class="metric-trend">${bars||'<span style="font-size:11px;color:var(--muted)">No data yet</span>'}</div>
+      <div class="metric-value-row">
+        <span class="metric-current">${currentVal!==null?currentVal+m.unit:'—'}</span>
+        ${delta!==null?`<span class="metric-delta ${deltaClass}">${deltaStr}${m.unit}</span>`:''}
+      </div>
+      ${latest?.note?`<div style="font-size:11px;color:var(--muted);margin-top:4px">${esc(latest.note)}</div>`:''}
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ── OUTCOME IN SYNTHESIS ──────────────────────────────
+async function loadSynthesisOutcomes(weekStart,weekEnd){
+  if(!outcomeMetrics.length)return'';
+  const{data}=await sb.from('task_outcomes').select('*,tasks(title,workstream)').gte('logged_at',weekStart).lte('logged_at',weekEnd);
+  if(!data||!data.length)return'';
+  const lines=data.map(o=>{
+    const m=outcomeMetrics.find(x=>x.id===o.metric_id);
+    if(!m)return null;
+    return`${esc(m.workstream)} — ${esc(m.metric_name)}: <strong>${o.new_value}${m.unit}</strong>${o.note?' ('+esc(o.note)+')':''}`;
+  }).filter(Boolean);
+  if(!lines.length)return'';
+  return`<div class="synth-section"><div class="synth-section-title">📊 Outcomes this week</div>${lines.map(l=>`<div class="synth-dec-item">${l}</div>`).join('')}</div>`;
 }
 
 init();
