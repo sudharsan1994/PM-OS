@@ -209,6 +209,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .focus-counter strong{color:var(--focus)}
 .selected-preview{padding:10px 14px;background:var(--focus-bg);border:1px solid var(--focus-border);border-radius:var(--r);margin-top:12px;font-size:12px}
 .selected-preview-title{font-size:11px;font-weight:700;color:var(--focus);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+
+/* SATISFACTION PICKER */
+.sat-picker{display:flex;gap:8px;padding:4px 0}
+.sat-btn{font-size:22px;background:none;border:2px solid var(--border);border-radius:var(--r);padding:6px 14px;cursor:pointer;transition:all .1s;line-height:1}
+.sat-btn:hover{border-color:var(--primary)}
+.sat-btn.sat-active{border-color:var(--primary);background:var(--primary-light)}
+/* DEEP WORK TOGGLE */
+.deep-toggle{display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;transition:all .1s}
+.deep-toggle:hover{border-color:var(--primary);background:var(--primary-light)}
+.deep-toggle.is-deep{border-color:#6D28D9;background:#F5F3FF;color:#6D28D9;font-weight:500}
+/* TASK ID COPY */
+.task-id{font-size:10px;color:var(--muted);font-family:monospace;cursor:pointer;padding:1px 4px;border-radius:3px;background:var(--surface2)}
+.task-id:hover{background:var(--border);color:var(--text)}
+/* TEAM ROLES */
+.role-item{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:var(--surface2);border-radius:6px;margin-bottom:5px}
+.role-name{font-size:12px;font-weight:600;min-width:80px;flex-shrink:0}
+.role-desc{font-size:12px;color:var(--muted);flex:1}
 .hidden{display:none!important}
 @media(max-width:768px){.a-grid{grid-template-columns:1fr 1fr}.a-charts-row{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.clocks{gap:8px}}
 </style>
@@ -219,7 +236,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.68 · 2026-05-14</div>
+  <div class="app-version">v1.69 · 2026-05-14</div>
 </header>
 
 <nav class="tab-nav">
@@ -405,12 +422,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="s-add"><input class="s-input" id="new-cust" placeholder="Add customer…" onkeydown="if(event.key==='Enter')addCustomer()"><button class="btn btn-sm btn-primary" onclick="addCustomer()">Add</button></div>
   </div>
   <div class="settings-section">
+    <div class="ss-title">Team Roles <span style="font-size:10px;font-weight:400;color:var(--muted)">(used for AI triage)</span></div>
+    <div id="roles-list"></div>
+    <div class="s-add" style="flex-wrap:wrap;gap:6px">
+      <input class="s-input" id="new-role-name" placeholder="Name" style="max-width:110px">
+      <input class="s-input" id="new-role-desc" placeholder="Handles: setup, onboarding, WhatsApp…">
+      <button class="btn btn-sm btn-primary" onclick="addTeamRole()">Add</button>
+    </div>
+  </div>
+  <div class="settings-section">
     <div class="ss-title">Version</div>
     <div class="info-box"><strong>v1.0 · 2026-05-09</strong><br><span style="font-size:12px">All 5 blocks complete. Decisions · Analytics · Synthesis · Push to tomorrow · Deep work split.</span><br><br>Hard-refresh (<code>Cmd+Shift+R</code>) if version looks stale.</div>
   </div>
 </div>
 </section>
 
+</div>
+
+<!-- ASSIGN TO CLAUDE MODAL -->
+<div class="modal-overlay" id="claude-modal">
+<div class="modal" style="max-width:500px">
+  <div class="modal-title">⚡ Assign to Claude</div>
+  <div id="claude-task-preview" style="background:var(--surface2);border-radius:var(--r);padding:12px;font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6"></div>
+  <div class="form-group">
+    <label class="form-label">What do you want Claude to do?</label>
+    <textarea class="form-textarea" id="claude-scope-input" rows="3" placeholder="e.g. Draft a reply to this, Summarize the key points, Write eval criteria for this feature…"></textarea>
+  </div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeClaudeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="copyClaudeBrief()">📋 Copy brief</button>
+  </div>
+</div>
 </div>
 
 <!-- DELETE CONFIRM MODAL -->
@@ -446,6 +488,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="form-group"><label class="form-label">Requester</label><select class="form-select" id="f-requester" onchange="handleInlineAdd(this,'requester')"><option value="">—</option></select></div>
   <div class="form-group"><label class="form-label">Source / thread link</label><input class="form-input" id="f-source" placeholder="https://…"></div>
   <div class="form-group"><label class="form-label">Workstream</label><select class="form-select" id="f-workstream" onchange="handleInlineAdd(this,'workstream')"><option value="">—</option></select></div>
+  <div class="form-group">
+    <div class="deep-toggle" id="deep-toggle" onclick="toggleDeepWork()">
+      <input type="checkbox" id="f-deep-work" style="display:none">
+      <span id="deep-toggle-icon">⬜</span>
+      <span>🧠 This is deep / focused work</span>
+    </div>
+  </div>
   <input type="hidden" id="f-id">
   <div class="modal-actions">
     <button class="btn btn-danger btn-sm hidden" id="delete-btn" onclick="deleteTask()">Delete</button>
@@ -487,6 +536,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div id="dc-participants" class="chip-container"></div>
     </div>
   </div>
+  <!-- SATISFACTION PICKER -->
+  <div class="form-group" id="sat-group" style="margin-top:14px">
+    <label class="form-label">How do you feel about this task?</label>
+    <div class="sat-picker">
+      <button type="button" class="sat-btn" id="sat-1" onclick="setSatisfaction(1)" title="Not happy">😞</button>
+      <button type="button" class="sat-btn" id="sat-2" onclick="setSatisfaction(2)" title="Okay">😐</button>
+      <button type="button" class="sat-btn" id="sat-3" onclick="setSatisfaction(3)" title="Happy">😊</button>
+    </div>
+  </div>
+  <input type="hidden" id="complete-satisfaction" value="0">
   <input type="hidden" id="complete-id">
   <input type="hidden" id="complete-task-type">
   <div class="modal-actions">
@@ -578,7 +637,7 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const DEEP_TYPES=new Set(['create','review','investigate','decide']);
 
-let tasks=[],teamMembers=[],customers=[],workstreams=[];
+let tasks=[],teamMembers=[],customers=[],workstreams=[],teamRoles=[];
 let focusSessions=[],yesterdayFS=[],completedTasks=[],decisions=[];
 let analyticsCompleted=[],analyticsDecisions28=[];
 let planSel=new Set();
@@ -607,11 +666,12 @@ async function loadAll(){
     sb.from('team_members').select('*').eq('active',true),
     sb.from('customers').select('*').eq('active',true),
     sb.from('workstreams').select('*').eq('active',true),
+    sb.from('team_roles').select('*').eq('active',true),
     sb.from('focus_sessions').select('*,tasks(id,title,customer,workstream,type,priority,status,source,requester,due_date,awaiting_since,deferred_count)').eq('date',TODAY),
     sb.from('focus_sessions').select('*,tasks(id,title,customer,workstream,type,priority,status,source,requester,due_date,awaiting_since,deferred_count)').eq('date',YESTERDAY)
   ]);
   tasks=tR.data||[];teamMembers=tmR.data||[];customers=cR.data||[];workstreams=wsR.data||[];
-  focusSessions=fsR.data||[];yesterdayFS=yfR.data||[];
+  focusSessions=fsR.data||[];yesterdayFS=yfR.data||[];teamRoles=_trR.data||[];
 }
 async function importPendingTasks(event){
   const file=event.target.files[0];
@@ -1237,6 +1297,10 @@ function taskCard(t,opts={}){
   const doneBtn=!isCompleted?`<button class="btn btn-sm btn-icon btn-success" onclick="openCompleteModal('${t.id}')">✓</button>`:'';
   const deferBtn=!isCompleted?`<button class="btn btn-sm btn-icon btn-defer" onclick="pushToTomorrow('${t.id}')" title="Push to tomorrow">⏩</button>`:'';
   const trashBtn=!isCompleted?`<button class="btn btn-sm btn-icon btn-danger" onclick="deleteTaskDirect('${t.id}')" title="Delete task">🗑</button>`:'';
+  const deepBadge=t.is_deep_work&&!isCompleted?'<span class="badge b-focus" style="background:#F5F3FF;color:#6D28D9">🧠 Deep</span>':'';
+  const satEmoji=isCompleted&&t.satisfaction?['','😞','😐','😊'][t.satisfaction]:'';
+  const copyBtn=`<button class="btn btn-sm btn-icon" onclick="copyTaskBrief('${t.id}')" title="Copy task brief" style="color:var(--muted)">📋</button>`;
+  const claudeBtn=!isCompleted?`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${t.id}')" title="Assign to Claude" style="color:#7C3AED;border-color:#C4B5FD">⚡</button>`:'';
 
   const remarks=isCompleted&&t.completion_remarks?`<div class="remarks-preview">${esc(t.completion_remarks.substring(0,120))}${t.completion_remarks.length>120?'…':''}</div>`:'';
   const artifactLink=isCompleted&&t.artifact_link?`<a href="${t.artifact_link}" target="_blank" class="task-link">↗ View artifact</a>`:'';
@@ -1247,6 +1311,7 @@ function taskCard(t,opts={}){
       <div class="task-title-row"><span class="task-title">${esc(t.title)}</span>
         <div class="task-badges">
           ${isPinned?'<span class="badge b-focus">⭐ Focus</span>':''}
+          ${deepBadge}
           ${t.priority?`<span class="badge b-${t.priority}">${cap(t.priority)}</span>`:''}
           ${t.type?`<span class="badge b-${cleanType(t.type)}">${cap(t.type)}</span>`:''}
           ${t.customer?`<span class="badge b-customer">${esc(t.customer)}</span>`:''}
@@ -1264,7 +1329,7 @@ function taskCard(t,opts={}){
       </div>
       ${remarks}
     </div>
-    <div class="task-actions">${focusBtn}${deferBtn}${trashBtn}${editBtn}${doneBtn}</div>
+    <div class="task-actions" style="align-items:center">${satEmoji?`<span style="font-size:16px" title="Satisfaction">${satEmoji}</span>`:''} ${focusBtn}${claudeBtn}${copyBtn}${deferBtn}${trashBtn}${editBtn}${doneBtn}</div>
   </li>`;
 }
 
@@ -1347,7 +1412,7 @@ function closeMorningPlan(){document.getElementById('mp-modal').classList.remove
 function openAddTask(){
   document.getElementById('add-modal-title').textContent='Add task';document.getElementById('f-id').value='';document.getElementById('delete-btn').classList.add('hidden');
   ['f-title','f-desc','f-requester','f-source','f-workstream'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('f-priority').value='medium';document.getElementById('f-type').value='';document.getElementById('f-customer').value='';
+  document.getElementById('f-priority').value='medium';document.getElementById('f-type').value='';document.getElementById('f-customer').value='';document.getElementById('f-deep-work').checked=false;document.getElementById('deep-toggle').className='deep-toggle';document.getElementById('deep-toggle-icon').textContent='⬜';
   document.getElementById('f-assignee').value='Me';document.getElementById('f-due').value='';document.getElementById('f-awaiting').value='';
   document.getElementById('add-modal').classList.add('open');
 }
@@ -1359,14 +1424,14 @@ function openEditTask(id){
   document.getElementById('f-customer').value=t.customer||'';document.getElementById('f-assignee').value=t.assigned_to||'Me';
   document.getElementById('f-due').value=t.due_date||'';document.getElementById('f-awaiting').value=t.awaiting_since||'';
   document.getElementById('f-requester').value=t.requester||'';document.getElementById('f-source').value=t.source||'';
-  document.getElementById('f-workstream').value=t.workstream||'';
+  document.getElementById('f-workstream').value=t.workstream||'';const dw=t.is_deep_work||false;document.getElementById('f-deep-work').checked=dw;document.getElementById('deep-toggle').className='deep-toggle'+(dw?' is-deep':'');document.getElementById('deep-toggle-icon').textContent=dw?'✅':'⬜';
   document.getElementById('add-modal').classList.add('open');
 }
 function closeAddModal(){document.getElementById('add-modal').classList.remove('open');}
 async function saveTask(){
   const id=document.getElementById('f-id').value;const title=document.getElementById('f-title').value.trim();
   if(!title){alert('Title is required.');return;}
-  const data={title,description:document.getElementById('f-desc').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,source:document.getElementById('f-source').value.trim()||null,workstream:document.getElementById('f-workstream').value.trim()||null,updated_at:new Date().toISOString()};
+  const data={title,description:document.getElementById('f-desc').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,source:document.getElementById('f-source').value.trim()||null,workstream:document.getElementById('f-workstream').value.trim()||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
   if(id){await sb.from('tasks').update(data).eq('id',id);const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};}
   else{data.status='open';data.created_at=new Date().toISOString();const{data:nt}=await sb.from('tasks').insert(data).select().single();if(nt)tasks.unshift(nt);}
   closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();
@@ -1400,7 +1465,7 @@ async function confirmDeleteTask(){
 // ── COMPLETE TASK ─────────────────────────────────────
 function openCompleteModal(id){
   const t=tasks.find(t=>t.id===id);if(!t)return;
-  document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-remarks').value='';
+  document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-remarks').value='';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
   const isDecide=t.type==='decide',isCreate=t.type==='create';
   document.getElementById('dec-capture-section').classList.toggle('hidden',!isDecide);
   document.getElementById('create-capture-section').classList.toggle('hidden',!isCreate);
@@ -1429,7 +1494,7 @@ async function saveComplete(){
 async function skipRemarks(){await completeTask(document.getElementById('complete-id').value,null,null,null);}
 async function completeTask(id,remarks,decData,artifactLink){
   const now=new Date().toISOString();const upd={status:'done',completed_at:now,updated_at:now};
-  if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;
+  if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');if(sat>0)upd.satisfaction=sat;
   await sb.from('tasks').update(upd).eq('id',id);
   if(decData)await sb.from('decisions').insert(decData);
   const fs=focusSessions.find(s=>s.task_id===id);if(fs){await sb.from('focus_sessions').update({completed:true}).eq('id',fs.id);fs.completed=true;}
@@ -1449,6 +1514,7 @@ async function approveDelegation(){
 
 // ── SETTINGS ─────────────────────────────────────────
 function renderSettings(){
+  renderTeamRoles();
   const chip=(label,onclick)=>`<span class="s-chip">${esc(label)}<button class="s-chip-del" onclick="${onclick}">✕</button></span>`;
   document.getElementById('team-list').innerHTML=`<div class="s-chips">${teamMembers.map(m=>chip(m.name,`rmTeam('${m.id}')`)).join('')||'<span style="font-size:12px;color:var(--muted)">None yet</span>'}</div>`;
   document.getElementById('ws-list').innerHTML=`<div class="s-chips">${workstreams.map(w=>chip(w.name,`rmWS('${w.id}')`)).join('')||'<span style="font-size:12px;color:var(--muted)">None yet</span>'}</div>`;
@@ -1526,6 +1592,114 @@ function normalizeSource(src){
 function channel(src){if(!src)return null;if(src.includes('teams.microsoft.com')||src.startsWith('teams://')||src.startsWith('msteams://'))return'teams';if(src.includes('outlook.office'))return'outlook';if(src.includes('sharepoint.com')||src.includes('onedrive'))return'document';if(src.startsWith('http'))return'other';return null;}
 function daysSince(d){return Math.floor((Date.now()-new Date(d))/86400000);}
 function daysUntil(d){const x=new Date(d);x.setHours(23,59,59);return Math.ceil((x-Date.now())/86400000);}
+
+// ── SATISFACTION ──────────────────────────────────────
+function setSatisfaction(val){
+  document.getElementById('complete-satisfaction').value=val;
+  ['sat-1','sat-2','sat-3'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle('sat-active',i+1===val);
+  });
+}
+
+// ── DEEP WORK TOGGLE ──────────────────────────────────
+function toggleDeepWork(){
+  const cb=document.getElementById('f-deep-work');
+  const tog=document.getElementById('deep-toggle');
+  const icon=document.getElementById('deep-toggle-icon');
+  cb.checked=!cb.checked;
+  tog.classList.toggle('is-deep',cb.checked);
+  icon.textContent=cb.checked?'✅':'⬜';
+}
+
+// ── COPY TASK BRIEF ───────────────────────────────────
+function copyTaskBrief(id){
+  const t=tasks.find(t=>t.id===id)||completedTasks.find(t=>t.id===id);
+  if(!t)return;
+  const brief=[
+    `PMOS#${id.substring(0,7)}`,
+    `Title: ${t.title}`,
+    t.type?`Type: ${cap(t.type)}`:'',
+    t.priority?`Priority: ${cap(t.priority)}`:'',
+    t.customer?`Customer: ${t.customer}`:'',
+    t.workstream?`Workstream: ${t.workstream}`:'',
+    t.requester?`From: ${t.requester}`:'',
+    t.source?`Source: ${t.source}`:'',
+    t.description?`Context: ${t.description}`:'',
+    t.is_deep_work?'[DEEP WORK]':''
+  ].filter(Boolean).join('\n');
+  navigator.clipboard.writeText(brief).then(()=>{
+    const btn=event.target;const orig=btn.textContent;
+    btn.textContent='✓';btn.style.color='var(--success)';
+    setTimeout(()=>{btn.textContent=orig;btn.style.color='';},1500);
+  });
+}
+
+// ── ASSIGN TO CLAUDE ──────────────────────────────────
+let _claudeTaskId=null;
+function openClaudeModal(id){
+  _claudeTaskId=id;
+  const t=tasks.find(t=>t.id===id);
+  if(!t)return;
+  const preview=[
+    `<strong>${esc(t.title)}</strong>`,
+    [t.type?cap(t.type):'',t.priority?cap(t.priority):'',t.customer||'',t.workstream||''].filter(Boolean).join(' · '),
+    t.requester?`From: ${esc(t.requester)}`:'',
+    t.source?`<a href="${normalizeSource(t.source)}" target="_blank" style="color:var(--primary);font-size:11px">Open source ↗</a>`:''
+  ].filter(Boolean).join('<br>');
+  document.getElementById('claude-task-preview').innerHTML=preview;
+  document.getElementById('claude-scope-input').value=t.claude_scope||'';
+  document.getElementById('claude-modal').classList.add('open');
+}
+function closeClaudeModal(){document.getElementById('claude-modal').classList.remove('open');}
+async function copyClaudeBrief(){
+  const id=_claudeTaskId;if(!id)return;
+  const t=tasks.find(t=>t.id===id);if(!t)return;
+  const scope=document.getElementById('claude-scope-input').value.trim();
+  if(!scope){alert('Please describe what you want Claude to do.');return;}
+  // Save scope to task
+  await sb.from('tasks').update({claude_scope:scope,updated_at:new Date().toISOString()}).eq('id',id);
+  const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i].claude_scope=scope;
+  const brief=[
+    `PMOS#${id.substring(0,7)}`,
+    `Title: ${t.title}`,
+    t.type?`Type: ${cap(t.type)}`:'',
+    t.priority?`Priority: ${cap(t.priority)}`:'',
+    t.customer?`Customer: ${t.customer}`:'',
+    t.workstream?`Workstream: ${t.workstream}`:'',
+    t.requester?`From: ${t.requester}`:'',
+    t.source?`Source: ${t.source}`:'',
+    t.description?`Context: ${t.description}`:'',
+    ``,
+    `What I need: ${scope}`
+  ].filter(l=>l!==undefined).join('\n');
+  await navigator.clipboard.writeText(brief);
+  closeClaudeModal();
+  alert('Brief copied! Go to Cowork → type /pmos-task → paste.');
+}
+
+// ── TEAM ROLES ────────────────────────────────────────
+function renderTeamRoles(){
+  const el=document.getElementById('roles-list');if(!el)return;
+  if(!teamRoles.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px 0">No roles defined yet. Add your team members\' roles below so AI triage knows who handles what.</div>';return;}
+  el.innerHTML=teamRoles.map(r=>`<div class="role-item">
+    <span class="role-name">${esc(r.name)}</span>
+    <span class="role-desc">${esc(r.role_description)}</span>
+    <button class="btn btn-sm btn-danger btn-icon" onclick="rmTeamRole('${r.id}')">✕</button>
+  </div>`).join('');
+}
+async function addTeamRole(){
+  const name=document.getElementById('new-role-name').value.trim();
+  const desc=document.getElementById('new-role-desc').value.trim();
+  if(!name||!desc){alert('Both name and role description required.');return;}
+  const{data}=await sb.from('team_roles').insert({name,role_description:desc,active:true}).select().single();
+  if(data){teamRoles.push(data);renderTeamRoles();}
+  document.getElementById('new-role-name').value='';document.getElementById('new-role-desc').value='';
+}
+async function rmTeamRole(id){
+  await sb.from('team_roles').update({active:false}).eq('id',id);
+  teamRoles=teamRoles.filter(r=>r.id!==id);renderTeamRoles();
+}
 
 init();
 </script>
