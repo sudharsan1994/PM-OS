@@ -725,7 +725,7 @@ async function init(){
 }
 
 async function loadAll(){
-  const [tR,tmR,cR,wsR,fsR,yfR]=await Promise.all([
+  const [tR,tmR,cR,wsR,trR,omR,fsR,yfR]=await Promise.all([
     sb.from('tasks').select('*').neq('status','done').neq('status','deleted').order('created_at',{ascending:false}),
     sb.from('team_members').select('*').eq('active',true),
     sb.from('customers').select('*').eq('active',true),
@@ -736,7 +736,7 @@ async function loadAll(){
     sb.from('focus_sessions').select('*,tasks(id,title,customer,workstream,type,priority,status,source,requester,due_date,awaiting_since,deferred_count)').eq('date',YESTERDAY)
   ]);
   tasks=tR.data||[];teamMembers=tmR.data||[];customers=cR.data||[];workstreams=wsR.data||[];
-  focusSessions=fsR.data||[];yesterdayFS=yfR.data||[];teamRoles=_trR.data||[];outcomeMetrics=_omR.data||[];
+  focusSessions=fsR.data||[];yesterdayFS=yfR.data||[];teamRoles=trR.data||[];outcomeMetrics=omR.data||[];
 }
 async function importPendingTasks(event){
   const file=event.target.files[0];
