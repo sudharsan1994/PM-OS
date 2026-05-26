@@ -254,15 +254,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .om-def-dir{font-size:11px;color:var(--muted)}
 .hidden{display:none!important}
 @media(max-width:768px){.a-grid{grid-template-columns:1fr 1fr}.a-charts-row{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.clocks{gap:8px}}
+#login-screen{display:none;position:fixed;inset:0;background:#0F172A;z-index:9999;display:flex;align-items:center;justify-content:center}
+.login-card{background:#1E293B;border:1px solid #334155;border-radius:12px;padding:40px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:20px}
+.login-title{color:#fff;font-size:20px;font-weight:700;text-align:center}.login-sub{color:#94A3B8;font-size:13px;text-align:center;margin-top:-12px}
+.login-field{display:flex;flex-direction:column;gap:6px}.login-field label{color:#94A3B8;font-size:12px;font-weight:500}
+.login-field input{background:#0F172A;border:1px solid #334155;border-radius:8px;padding:10px 14px;color:#fff;font-size:14px;outline:none}
+.login-field input:focus{border-color:#4F46E5}
+.login-btn{background:#4F46E5;border:none;border-radius:8px;padding:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
+.login-btn:hover{background:#4338CA}
+.login-error{color:#F87171;font-size:12px;text-align:center;min-height:16px}
+.signout-btn{font-size:11px;color:#94A3B8;background:#0F172A;border:1px solid #334155;border-radius:4px;padding:3px 10px;cursor:pointer;margin-left:8px}
+.signout-btn:hover{color:#fff}
 </style>
 </head>
 <body>
-<div id="app">
+<div id="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-title">PM-OS</div>
+    <div class="login-sub">Sign in to continue</div>
+    <div class="login-field"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com" autocomplete="username"/></div>
+    <div class="login-field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/></div>
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+  </div>
+</div>
+<div id="app" style="display:none">
 
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.70 · 2026-05-14</div>
+  <div class="app-version">v1.71 · 2026-05-26</div>
+  <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
 <nav class="tab-nav">
@@ -1901,7 +1923,37 @@ async function loadSynthesisOutcomes(weekStart,weekEnd){
   return`<div class="synth-section"><div class="synth-section-title">📊 Outcomes this week</div>${lines.map(l=>`<div class="synth-dec-item">${l}</div>`).join('')}</div>`;
 }
 
-init();
+async function doLogin(){
+  const email=document.getElementById("login-email").value.trim();
+  const password=document.getElementById("login-password").value;
+  const errEl=document.getElementById("login-error");
+  errEl.textContent="";
+  const btn=document.querySelector(".login-btn");
+  btn.textContent="Signing in…";btn.disabled=true;
+  const{error}=await sb.auth.signInWithPassword({email,password});
+  btn.textContent="Sign in";btn.disabled=false;
+  if(error){errEl.textContent=error.message;return;}
+  showApp();
+}
+async function doSignOut(){
+  await sb.auth.signOut();
+  document.getElementById("app").style.display="none";
+  document.getElementById("login-screen").style.display="flex";
+  document.getElementById("login-password").value="";
+}
+function showApp(){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("app").style.display="block";
+  init();
+}
+// Allow Enter key on login form
+document.getElementById("login-password").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+document.getElementById("login-email").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+// Boot: check existing session
+(async()=>{
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){showApp();}else{document.getElementById("login-screen").style.display="flex";}
+})();
 </script>
 </body>
 </html>
