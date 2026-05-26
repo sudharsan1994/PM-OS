@@ -303,7 +303,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.72 · 2026-05-26</div>
+  <div class="app-version">v1.74 · 2026-05-26</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -576,7 +576,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="form-group"><label class="form-label">Metric name *</label><input class="form-input" id="m-name" placeholder="e.g. Resolution Rate"></div>
   <div class="form-row">
     <div class="form-group"><label class="form-label">Value</label><input class="form-input" id="m-value" placeholder="e.g. 72%"></div>
-    <div class="form-group"><label class="form-label">Period</label><input class="form-input" id="m-period" type="month"></div>
+    <div class="form-group"><label class="form-label">Period</label><select class="form-select" id="m-period"><option value="">—</option><option value="Weekly">Weekly</option><option value="Monthly">Monthly</option><option value="N/A">N/A</option></select></div>
   </div>
   <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="m-desc" rows="3" placeholder="What does this metric mean? How is it calculated?"></textarea></div>
   <div class="modal-actions">
@@ -1751,12 +1751,16 @@ function renderMetrics() {
         </tr></thead>
         <tbody>${rows.map(m=>`
           <tr>
-            <td class="m-name">${esc(m.metric_name)}</td>
+            <td class="m-name"><input class="m-inline" value="${esc(m.metric_name)}" onblur="saveMetricField('${m.id}','metric_name',this.value)"></td>
             <td><select class="m-select" onchange="saveMetricField('${m.id}','customer',this.value)">
               ${custOpts.replace(`value="${esc(m.customer||'')}"`,`value="${esc(m.customer||'')}" selected`)}
             </select></td>
-            <td><input class="m-inline" type="month" value="${m.period?m.period.slice(0,7):''}"
-              onblur="saveMetricField('${m.id}','period',this.value?this.value+'-01':null)"></td>
+            <td><select class="m-select" onchange="saveMetricField('${m.id}','period',this.value)">
+              <option value="">—</option>
+              <option value="Weekly" ${m.period==='Weekly'?'selected':''}>Weekly</option>
+              <option value="Monthly" ${m.period==='Monthly'?'selected':''}>Monthly</option>
+              <option value="N/A" ${m.period==='N/A'?'selected':''}>N/A</option>
+            </select></td>
             <td><input class="m-inline" value="${esc(m.metric_value||'')}" placeholder="—"
               onblur="saveMetricField('${m.id}','metric_value',this.value)"></td>
             <td><textarea class="m-desc-input" rows="2"
@@ -1786,7 +1790,7 @@ function openAddMetric() {
   document.getElementById('m-customer').innerHTML = '<option value="">—</option>'+customers.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
   document.getElementById('m-name').value='';
   document.getElementById('m-value').value='';
-  document.getElementById('m-period').value=new Date().toISOString().slice(0,7);
+  document.getElementById('m-period').value='';
   document.getElementById('m-desc').value='';
   document.getElementById('add-metric-modal').classList.add('open');
 }
@@ -1801,7 +1805,7 @@ async function saveNewMetric() {
   const payload={workstream:ws,metric_name:name,
     customer:document.getElementById('m-customer').value||null,
     metric_value:document.getElementById('m-value').value||null,
-    period:document.getElementById('m-period').value?document.getElementById('m-period').value+'-01':null,
+    period:document.getElementById('m-period').value||null,
     description:document.getElementById('m-desc').value||null};
   const {data}=await sb.from('outcome_metrics').insert(payload).select().single();
   if(data){metricsData.push(data);renderMetrics();}
