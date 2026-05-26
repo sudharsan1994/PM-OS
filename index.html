@@ -252,6 +252,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .om-def-name{flex:1;font-weight:500}
 .om-def-unit{color:var(--muted);font-size:11px}
 .om-def-dir{font-size:11px;color:var(--muted)}
+/* METRICS */
+.metrics-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:16px;overflow:hidden}
+.metrics-group-header{padding:12px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.metrics-group-title{font-size:13px;font-weight:700}
+.metrics-table{width:100%;border-collapse:collapse}
+.metrics-table th{padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border)}
+.metrics-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:top}
+.metrics-table tr:last-child td{border-bottom:none}
+.metrics-table tr:hover td{background:#FAFBFC}
+.m-name{font-weight:500;white-space:nowrap}
+.m-inline{border:1px solid transparent;border-radius:5px;padding:3px 6px;font-size:13px;background:transparent;color:var(--text);width:100%;font-family:inherit}
+.m-inline:hover{border-color:var(--border);background:var(--surface)}
+.m-inline:focus{border-color:var(--primary);background:var(--surface);outline:none}
+.m-desc-input{border:1px solid transparent;border-radius:5px;padding:3px 6px;font-size:12px;background:transparent;color:var(--muted);width:100%;font-family:inherit;resize:vertical;min-height:40px;line-height:1.5}
+.m-desc-input:hover{border-color:var(--border);background:var(--surface);color:var(--text)}
+.m-desc-input:focus{border-color:var(--primary);background:var(--surface);color:var(--text);outline:none}
+.m-select{border:1px solid transparent;border-radius:5px;padding:3px 6px;font-size:12px;background:transparent;color:var(--text);cursor:pointer;font-family:inherit;width:100%;max-width:140px}
+.m-select:hover,.m-select:focus{border-color:var(--primary);background:var(--surface);outline:none}
+.m-empty{padding:24px 20px;text-align:center;color:var(--muted);font-size:13px}
+
 .hidden{display:none!important}
 @media(max-width:768px){.a-grid{grid-template-columns:1fr 1fr}.a-charts-row{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.clocks{gap:8px}}
 #login-screen{display:none;position:fixed;inset:0;background:#0F172A;z-index:9999;display:flex;align-items:center;justify-content:center}
@@ -283,7 +303,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.71 · 2026-05-26</div>
+  <div class="app-version">v1.72 · 2026-05-26</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -294,6 +314,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <button class="tab-btn" data-tab="decisions">Decisions</button>
   <button class="tab-btn" data-tab="analytics">Analytics</button>
   <button class="tab-btn" data-tab="synthesis">Synthesis</button>
+  <button class="tab-btn" data-tab="metrics">Metrics</button>
   <button class="tab-btn" data-tab="settings">Settings</button>
 </nav>
 
@@ -456,6 +477,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </section>
 
 <!-- SETTINGS -->
+<!-- METRICS TAB -->
+<section class="tab-section" id="tab-metrics">
+<div class="main-content">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div>
+      <div style="font-size:15px;font-weight:600">Outcome Metrics</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">Per workstream · per customer · updated manually after each review</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openAddMetric()">+ Add metric</button>
+  </div>
+  <div id="metrics-body"><div class="m-empty">Loading…</div></div>
+</div>
+</section>
+
 <section class="tab-section" id="tab-settings">
 <div class="main-content">
   <div class="settings-section">
@@ -526,6 +561,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="modal-actions" style="justify-content:center;gap:10px">
     <button class="btn" style="min-width:80px" onclick="document.getElementById('del-confirm-modal').classList.remove('open')">Cancel</button>
     <button class="btn btn-danger" style="min-width:80px" id="del-confirm-btn" onclick="confirmDeleteTask()">Delete</button>
+  </div>
+</div>
+</div>
+
+<!-- ADD METRIC MODAL -->
+<div class="modal-overlay" id="add-metric-modal">
+<div class="modal" style="max-width:480px">
+  <div class="modal-title">Add metric</div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Workstream *</label><select class="form-select" id="m-workstream"><option value="">—</option></select></div>
+    <div class="form-group"><label class="form-label">Customer</label><select class="form-select" id="m-customer"><option value="">—</option></select></div>
+  </div>
+  <div class="form-group"><label class="form-label">Metric name *</label><input class="form-input" id="m-name" placeholder="e.g. Resolution Rate"></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Value</label><input class="form-input" id="m-value" placeholder="e.g. 72%"></div>
+    <div class="form-group"><label class="form-label">Period</label><input class="form-input" id="m-period" type="month"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="m-desc" rows="3" placeholder="What does this metric mean? How is it calculated?"></textarea></div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeAddMetric()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveNewMetric()">Add metric</button>
   </div>
 </div>
 </div>
@@ -1663,6 +1719,95 @@ function getChips(containerId){
 }
 
 // ── TABS ──────────────────────────────────────────────
+// ── METRICS ─────────────────────────────────────────────
+let metricsData = [];
+
+async function loadMetrics() {
+  const {data} = await sb.from('outcome_metrics').select('*').order('workstream').order('metric_name');
+  metricsData = data || [];
+  renderMetrics();
+}
+
+function renderMetrics() {
+  const body = document.getElementById('metrics-body');
+  if(!metricsData.length){ body.innerHTML='<div class="m-empty">No metrics yet. Click "+ Add metric" to get started.</div>'; return; }
+  const groups = {};
+  metricsData.forEach(m => { if(!groups[m.workstream]) groups[m.workstream]=[]; groups[m.workstream].push(m); });
+  const custOpts = '<option value="">—</option>' + customers.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  body.innerHTML = Object.entries(groups).map(([ws, rows]) => `
+    <div class="metrics-group">
+      <div class="metrics-group-header">
+        <span class="metrics-group-title">${esc(ws)}</span>
+        <button class="btn btn-sm" onclick="openAddMetricForWS('${esc(ws)}')">+ Add</button>
+      </div>
+      <table class="metrics-table">
+        <thead><tr>
+          <th style="width:170px">Metric</th>
+          <th style="width:140px">Customer</th>
+          <th style="width:110px">Period</th>
+          <th style="width:130px">Value</th>
+          <th>Description</th>
+          <th style="width:30px"></th>
+        </tr></thead>
+        <tbody>${rows.map(m=>`
+          <tr>
+            <td class="m-name">${esc(m.metric_name)}</td>
+            <td><select class="m-select" onchange="saveMetricField('${m.id}','customer',this.value)">
+              ${custOpts.replace(`value="${esc(m.customer||'')}"`,`value="${esc(m.customer||'')}" selected`)}
+            </select></td>
+            <td><input class="m-inline" type="month" value="${m.period?m.period.slice(0,7):''}"
+              onblur="saveMetricField('${m.id}','period',this.value?this.value+'-01':null)"></td>
+            <td><input class="m-inline" value="${esc(m.metric_value||'')}" placeholder="—"
+              onblur="saveMetricField('${m.id}','metric_value',this.value)"></td>
+            <td><textarea class="m-desc-input" rows="2"
+              onblur="saveMetricField('${m.id}','description',this.value)">${esc(m.description||'')}</textarea></td>
+            <td style="text-align:center"><button class="btn btn-sm btn-danger btn-icon" onclick="deleteMetric('${m.id}')" title="Delete">✕</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+}
+
+async function saveMetricField(id, field, value) {
+  await sb.from('outcome_metrics').update({[field]: value||null}).eq('id',id);
+  const row = metricsData.find(m=>m.id===id);
+  if(row) row[field] = value||null;
+}
+
+async function deleteMetric(id) {
+  if(!confirm('Delete this metric?')) return;
+  await sb.from('outcome_metrics').delete().eq('id',id);
+  metricsData = metricsData.filter(m=>m.id!==id);
+  renderMetrics();
+}
+
+function openAddMetric() {
+  document.getElementById('m-workstream').innerHTML = '<option value="">—</option>'+workstreams.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
+  document.getElementById('m-customer').innerHTML = '<option value="">—</option>'+customers.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  document.getElementById('m-name').value='';
+  document.getElementById('m-value').value='';
+  document.getElementById('m-period').value=new Date().toISOString().slice(0,7);
+  document.getElementById('m-desc').value='';
+  document.getElementById('add-metric-modal').classList.add('open');
+}
+
+function openAddMetricForWS(ws) { openAddMetric(); document.getElementById('m-workstream').value=ws; }
+function closeAddMetric() { document.getElementById('add-metric-modal').classList.remove('open'); }
+
+async function saveNewMetric() {
+  const ws=document.getElementById('m-workstream').value.trim();
+  const name=document.getElementById('m-name').value.trim();
+  if(!ws||!name){alert('Workstream and metric name are required.');return;}
+  const payload={workstream:ws,metric_name:name,
+    customer:document.getElementById('m-customer').value||null,
+    metric_value:document.getElementById('m-value').value||null,
+    period:document.getElementById('m-period').value?document.getElementById('m-period').value+'-01':null,
+    description:document.getElementById('m-desc').value||null};
+  const {data}=await sb.from('outcome_metrics').insert(payload).select().single();
+  if(data){metricsData.push(data);renderMetrics();}
+  closeAddMetric();
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',function(){
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -1673,6 +1818,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(this.dataset.tab==='analytics')loadAnalytics();
     if(this.dataset.tab==='synthesis'){synthMonthMode=false;document.getElementById('synth-toggle-btn').textContent='Month view';document.getElementById('synth-week-view').classList.remove('hidden');document.getElementById('synth-month-view').classList.add('hidden');loadSynthesisWeek();}
     if(this.dataset.tab==='settings')renderSettings();
+    if(this.dataset.tab==='metrics')loadMetrics();
   });
 });
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
