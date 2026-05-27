@@ -303,7 +303,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.75 · 2026-05-27</div>
+  <div class="app-version">v1.76 · 2026-05-27</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -539,16 +539,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <!-- ASSIGN TO CLAUDE MODAL -->
 <div class="modal-overlay" id="claude-modal">
-<div class="modal" style="max-width:500px">
-  <div class="modal-title">⚡ Assign to Claude</div>
-  <div id="claude-task-preview" style="background:var(--surface2);border-radius:var(--r);padding:12px;font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6"></div>
+<div class="modal" style="max-width:560px">
+  <div class="modal-title">⚡ Send to Claude</div>
+
+  <!-- Task params strip -->
+  <div id="claude-params" style="background:var(--surface2);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.8;display:flex;flex-wrap:wrap;gap:4px 12px"></div>
+
+  <!-- Subject -->
   <div class="form-group">
-    <label class="form-label">What do you want Claude to do?</label>
-    <textarea class="form-textarea" id="claude-scope-input" rows="3" placeholder="e.g. Draft a reply to this, Summarize the key points, Write eval criteria for this feature…"></textarea>
+    <label class="form-label">Subject</label>
+    <input class="form-input" id="claude-subject" placeholder="Task title">
   </div>
+
+  <!-- Description -->
+  <div class="form-group">
+    <label class="form-label">Description</label>
+    <textarea class="form-textarea" id="claude-description" rows="2" placeholder="Task description…"></textarea>
+  </div>
+
+  <!-- Source -->
+  <div class="form-group">
+    <label class="form-label">Source context <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(paste relevant text from the email / chat / doc)</span></label>
+    <textarea class="form-textarea" id="claude-source-text" rows="3" placeholder="Paste content from the source here, or leave blank if the link is enough…"></textarea>
+    <div id="claude-source-link" style="margin-top:6px;font-size:12px"></div>
+  </div>
+
+  <!-- Additional instructions -->
+  <div class="form-group">
+    <label class="form-label">Additional instructions</label>
+    <textarea class="form-textarea" id="claude-scope-input" rows="2" placeholder="e.g. Use the helpdesk eval skill. Draft a reply. Summarise key points…"></textarea>
+  </div>
+
   <div class="modal-actions">
     <button class="btn" onclick="closeClaudeModal()">Cancel</button>
-    <button class="btn btn-primary" onclick="copyClaudeBrief()">📋 Copy brief</button>
+    <button class="btn btn-primary" onclick="copyClaudeBrief()">Copy &amp; Open Claude →</button>
   </div>
 </div>
 </div>
@@ -1444,7 +1468,7 @@ function taskCard(t,opts={}){
   const trashBtn=!isCompleted?`<button class="btn btn-sm btn-icon btn-danger" onclick="deleteTaskDirect('${t.id}')" title="Delete task">🗑</button>`:'';
   const deepBadge=t.is_deep_work&&!isCompleted?'<span class="badge b-focus" style="background:#F5F3FF;color:#6D28D9">🧠 Deep</span>':'';
   const satEmoji=isCompleted&&t.satisfaction?['','😞','😐','😊'][t.satisfaction]:'';
-  const copyBtn=`<button class="btn btn-sm btn-icon" onclick="copyTaskBrief('${t.id}')" title="Copy task brief" style="color:var(--muted)">📋</button>`;
+  const copyBtn=`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${t.id}')" title="Send to Claude" style="color:var(--muted)">⚡</button>`;
   const claudeBtn=!isCompleted?`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${t.id}')" title="Assign to Claude" style="color:#7C3AED;border-color:#C4B5FD">⚡</button>`:'';
 
   const remarks=isCompleted&&t.completion_remarks?`<div class="remarks-preview">${esc(t.completion_remarks.substring(0,120))}${t.completion_remarks.length>120?'…':''}</div>`:'';
@@ -1894,47 +1918,67 @@ function copyTaskBrief(id){
   });
 }
 
-// ── ASSIGN TO CLAUDE ──────────────────────────────────
+// ── SEND TO CLAUDE ────────────────────────────────────
 let _claudeTaskId=null;
 function openClaudeModal(id){
   _claudeTaskId=id;
-  const t=tasks.find(t=>t.id===id);
+  const t=tasks.find(t=>t.id===id)||completedTasks.find(t=>t.id===id);
   if(!t)return;
-  const preview=[
-    `<strong>${esc(t.title)}</strong>`,
-    [t.type?cap(t.type):'',t.priority?cap(t.priority):'',t.customer||'',t.workstream||''].filter(Boolean).join(' · '),
-    t.requester?`From: ${esc(t.requester)}`:'',
-    t.source?`<a href="${normalizeSource(t.source)}" target="_blank" style="color:var(--primary);font-size:11px">Open source ↗</a>`:''
-  ].filter(Boolean).join('<br>');
-  document.getElementById('claude-task-preview').innerHTML=preview;
+  // Params strip
+  const params=[
+    `PMOS#${id.substring(0,7)}`,
+    t.type?`<span class="badge b-${cleanType(t.type)}">${cap(t.type)}</span>`:'',
+    t.priority?`<span class="badge b-${t.priority}">${cap(t.priority)}</span>`:'',
+    t.customer?`<span class="badge b-customer">${esc(t.customer)}</span>`:'',
+    t.workstream?`<span class="badge b-ws">${esc(t.workstream)}</span>`:'',
+    t.requester?`<span style="color:var(--muted)">from ${esc(t.requester)}</span>`:'',
+    t.assigned_to?`<span style="color:var(--muted)">→ ${esc(t.assigned_to)}</span>`:'',
+    t.due_date?`<span style="color:var(--muted)">due ${t.due_date}</span>`:''
+  ].filter(Boolean).join(' ');
+  document.getElementById('claude-params').innerHTML=params;
+  // Pre-fill fields
+  document.getElementById('claude-subject').value=t.title||'';
+  document.getElementById('claude-description').value=t.description||'';
+  document.getElementById('claude-source-text').value='';
   document.getElementById('claude-scope-input').value=t.claude_scope||'';
+  // Source link
+  const linkEl=document.getElementById('claude-source-link');
+  linkEl.innerHTML=t.source?`<a href="${normalizeSource(t.source)}" target="_blank" style="color:var(--primary)">Open source ↗</a> <span style="color:var(--muted)">(link will be included in brief)</span>`:'<span style="color:var(--muted)">No source link on this task.</span>';
   document.getElementById('claude-modal').classList.add('open');
 }
 function closeClaudeModal(){document.getElementById('claude-modal').classList.remove('open');}
 async function copyClaudeBrief(){
   const id=_claudeTaskId;if(!id)return;
-  const t=tasks.find(t=>t.id===id);if(!t)return;
+  const t=tasks.find(t=>t.id===id)||completedTasks.find(t=>t.id===id);if(!t)return;
+  const subject=document.getElementById('claude-subject').value.trim();
+  const desc=document.getElementById('claude-description').value.trim();
+  const sourceText=document.getElementById('claude-source-text').value.trim();
   const scope=document.getElementById('claude-scope-input').value.trim();
-  if(!scope){alert('Please describe what you want Claude to do.');return;}
-  // Save scope to task
-  await sb.from('tasks').update({claude_scope:scope,updated_at:new Date().toISOString()}).eq('id',id);
-  const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i].claude_scope=scope;
-  const brief=[
+  const lines=[
     `PMOS#${id.substring(0,7)}`,
-    `Title: ${t.title}`,
+    ``,
+    `## Task`,
+    `Title: ${subject||t.title}`,
     t.type?`Type: ${cap(t.type)}`:'',
     t.priority?`Priority: ${cap(t.priority)}`:'',
     t.customer?`Customer: ${t.customer}`:'',
     t.workstream?`Workstream: ${t.workstream}`:'',
     t.requester?`From: ${t.requester}`:'',
-    t.source?`Source: ${t.source}`:'',
-    t.description?`Context: ${t.description}`:'',
-    ``,
-    `What I need: ${scope}`
+    t.assigned_to?`Assigned to: ${t.assigned_to}`:'',
+    t.due_date?`Due: ${t.due_date}`:'',
+    desc?`\n## Description\n${desc}`:'',
+    t.source?`\n## Source\n${t.source}`:'',
+    sourceText?`\n## Source context\n${sourceText}`:'',
+    scope?`\n## Instructions\n${scope}`:''
   ].filter(l=>l!==undefined).join('\n');
-  await navigator.clipboard.writeText(brief);
+  // Save scope
+  if(scope){
+    await sb.from('tasks').update({claude_scope:scope,updated_at:new Date().toISOString()}).eq('id',id);
+    const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i].claude_scope=scope;
+  }
+  await navigator.clipboard.writeText(lines);
   closeClaudeModal();
-  alert('Brief copied! Go to Cowork → type /pmos-task → paste.');
+  window.open('https://claude.ai/new','_blank');
 }
 
 // ── TEAM ROLES ────────────────────────────────────────
