@@ -303,7 +303,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.74 · 2026-05-26</div>
+  <div class="app-version">v1.75 · 2026-05-27</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -1030,6 +1030,7 @@ function renderFocusSlots(){
     const reqLine=tk.requester?`<span style="font-size:11px;color:var(--muted)">from ${esc(tk.requester)}</span>`:'';
     const chb=chIcon?`<span class="badge b-channel">${chIcon} ${cap(ch)}</span>`:'';
     const ab=(!s.completed&&!s.not_done_today)?`<button class="btn btn-sm btn-success btn-icon" onclick="markFocusDone('${s.id}')">✓</button>`:'';
+    const editBtn=tk.id?`<button class="btn btn-sm btn-icon" onclick="openEditTask('${tk.id}')" title="Edit task"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:'';
     return`<div class="focus-slot ${cls}">
       <span class="focus-num">${s.slot}</span>
       <div style="flex:1;min-width:0">
@@ -1037,7 +1038,7 @@ function renderFocusSlots(){
         <div class="focus-meta" style="margin-bottom:4px">${cb}${pb}${tb}${wb}${custb}${chb}${etab}${awb}${defb}${statusBadge}</div>
         <div style="display:flex;gap:10px;align-items:center">${reqLine}${srcLink}</div>
       </div>
-      <div class="focus-actions">${ab}</div>
+      <div class="focus-actions">${editBtn}${ab}</div>
     </div>`;
   }).join('');
 }
