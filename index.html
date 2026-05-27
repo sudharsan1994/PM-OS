@@ -303,7 +303,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.76 · 2026-05-27</div>
+  <div class="app-version">v1.77 · 2026-05-27</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -629,7 +629,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="form-group"><label class="form-label">Awaiting since</label><input class="form-input" id="f-awaiting" type="date"></div>
   </div>
   <div class="form-group"><label class="form-label">Requester</label><select class="form-select" id="f-requester" onchange="handleInlineAdd(this,'requester')"><option value="">—</option></select></div>
-  <div class="form-group"><label class="form-label">Source / thread link</label><input class="form-input" id="f-source" placeholder="https://…"></div>
+  <div class="form-group">
+    <label class="form-label">Source / thread links</label>
+    <div id="f-sources-list"></div>
+    <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="addSourceRow()">+ Add source</button>
+  </div>
   <div class="form-group"><label class="form-label">Workstream</label><select class="form-select" id="f-workstream" onchange="handleInlineAdd(this,'workstream')"><option value="">—</option></select></div>
   <div class="form-group">
     <div class="deep-toggle" id="deep-toggle" onclick="toggleDeepWork()">
@@ -680,31 +684,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     </div>
   </div>
   <!-- OUTCOME METRIC SECTION -->
-  <div class="outcome-section hidden" id="outcome-section">
-    <div class="outcome-toggle" onclick="toggleOutcomeSection()">
-      <span id="outcome-toggle-arrow">▶</span>
-      📊 Did this task move a metric?
-    </div>
-    <div class="outcome-body hidden" id="outcome-body">
-      <div class="form-row" style="margin-top:10px">
-        <div class="form-group">
-          <label class="form-label">Metric</label>
-          <select class="form-select" id="outcome-metric-select"><option value="">— select —</option></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">New value <span id="outcome-unit-label" style="font-weight:400;color:var(--muted)"></span></label>
-          <input class="form-input" id="outcome-new-value" type="number" step="any" placeholder="68">
-        </div>
-      </div>
-      <div class="form-group" style="margin-bottom:0">
-        <label class="form-label">Note (optional)</label>
-        <input class="form-input" id="outcome-note" placeholder="e.g. based on Thursday data pull">
-      </div>
-    </div>
+  <div class="form-group">
+    <label class="form-label">Outcome / metric moved <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(optional — what changed as a result of this task?)</span></label>
+    <input class="form-input" id="outcome-note" placeholder="e.g. False positive rate dropped to 38% · Charter Hall approved go-live · Resolved 3 open blockers">
   </div>
   <!-- SATISFACTION PICKER -->
   <div class="form-group" id="sat-group" style="margin-top:14px">
-    <label class="form-label">How do you feel about this task?</label>
+    <label class="form-label">How do you feel about this task? <span style="color:var(--danger)">*</span></label>
     <div class="sat-picker">
       <button type="button" class="sat-btn" id="sat-1" onclick="setSatisfaction(1)" title="Not happy">😞</button>
       <button type="button" class="sat-btn" id="sat-2" onclick="setSatisfaction(2)" title="Okay">😐</button>
@@ -716,7 +702,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <input type="hidden" id="complete-task-type">
   <div class="modal-actions">
     <button class="btn" onclick="closeCompleteModal()">Cancel</button>
-    <button class="btn" onclick="skipRemarks()">Skip</button>
     <button class="btn btn-primary" onclick="saveComplete()">Save & mark done ✓</button>
   </div>
 </div>
@@ -1492,13 +1477,13 @@ function taskCard(t,opts={}){
       <div class="task-meta">
         ${t.requester?`<span>from ${esc(t.requester)}</span>`:''}
         ${t.assigned_to&&t.assigned_to!=='Me'?`<span style="color:var(--primary);font-weight:500">→ ${esc(t.assigned_to)}</span>`:''}
-        ${t.source?`<a href="${normalizeSource(t.source)}" target="_blank" class="task-link">Open thread ↗</a>`:''}
+        ${t.source?(t.source.split('\n').filter(Boolean).map((s,i)=>`<a href="${normalizeSource(s)}" target="_blank" class="task-link">Source${t.source.split('\n').filter(Boolean).length>1?' '+(i+1):''} ↗</a>`).join('')):''}
         ${artifactLink}
         ${isCompleted&&t.completed_at?`<span>Done ${new Date(t.completed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>`:''}
       </div>
       ${remarks}
     </div>
-    <div class="task-actions" style="align-items:center">${satEmoji?`<span style="font-size:16px" title="Satisfaction">${satEmoji}</span>`:''} ${focusBtn}${claudeBtn}${copyBtn}${deferBtn}${trashBtn}${editBtn}${doneBtn}</div>
+    <div class="task-actions" style="align-items:center">${satEmoji?`<span style="font-size:16px" title="Satisfaction">${satEmoji}</span>`:''} ${focusBtn}${claudeBtn}${deferBtn}${trashBtn}${editBtn}${doneBtn}</div>
   </li>`;
 }
 
@@ -1580,7 +1565,7 @@ function closeMorningPlan(){document.getElementById('mp-modal').classList.remove
 // ── ADD/EDIT TASK ─────────────────────────────────────
 function openAddTask(){
   document.getElementById('add-modal-title').textContent='Add task';document.getElementById('f-id').value='';document.getElementById('delete-btn').classList.add('hidden');
-  ['f-title','f-desc','f-requester','f-source','f-workstream'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-title','f-desc','f-requester','f-workstream'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});populateSources('');
   document.getElementById('f-priority').value='medium';document.getElementById('f-type').value='';document.getElementById('f-customer').value='';document.getElementById('f-deep-work').checked=false;document.getElementById('deep-toggle').className='deep-toggle';document.getElementById('deep-toggle-icon').textContent='⬜';
   document.getElementById('f-assignee').value='Me';document.getElementById('f-due').value='';document.getElementById('f-awaiting').value='';
   document.getElementById('add-modal').classList.add('open');
@@ -1592,7 +1577,7 @@ function openEditTask(id){
   document.getElementById('f-priority').value=t.priority||'medium';document.getElementById('f-type').value=t.type||'';
   document.getElementById('f-customer').value=t.customer||'';document.getElementById('f-assignee').value=t.assigned_to||'Me';
   document.getElementById('f-due').value=t.due_date||'';document.getElementById('f-awaiting').value=t.awaiting_since||'';
-  document.getElementById('f-requester').value=t.requester||'';document.getElementById('f-source').value=t.source||'';
+  document.getElementById('f-requester').value=t.requester||'';populateSources(t.source||'');
   document.getElementById('f-workstream').value=t.workstream||'';const dw=t.is_deep_work||false;document.getElementById('f-deep-work').checked=dw;document.getElementById('deep-toggle').className='deep-toggle'+(dw?' is-deep':'');document.getElementById('deep-toggle-icon').textContent=dw?'✅':'⬜';
   document.getElementById('add-modal').classList.add('open');
 }
@@ -1600,7 +1585,7 @@ function closeAddModal(){document.getElementById('add-modal').classList.remove('
 async function saveTask(){
   const id=document.getElementById('f-id').value;const title=document.getElementById('f-title').value.trim();
   if(!title){alert('Title is required.');return;}
-  const data={title,description:document.getElementById('f-desc').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,source:document.getElementById('f-source').value.trim()||null,workstream:document.getElementById('f-workstream').value.trim()||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
+  const data={title,description:document.getElementById('f-desc').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
   if(id){await sb.from('tasks').update(data).eq('id',id);const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};}
   else{data.status='open';data.created_at=new Date().toISOString();const{data:nt}=await sb.from('tasks').insert(data).select().single();if(nt)tasks.unshift(nt);}
   closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();
@@ -1634,7 +1619,7 @@ async function confirmDeleteTask(){
 // ── COMPLETE TASK ─────────────────────────────────────
 function openCompleteModal(id){
   const t=tasks.find(t=>t.id===id);if(!t)return;
-  document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-remarks').value='';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
+  document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-remarks').value='';document.getElementById('outcome-note').value='';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
   const isDecide=t.type==='decide',isCreate=t.type==='create';
   document.getElementById('dec-capture-section').classList.toggle('hidden',!isDecide);
   document.getElementById('create-capture-section').classList.toggle('hidden',!isCreate);
@@ -1665,24 +1650,23 @@ function closeCompleteModal(){document.getElementById('complete-modal').classLis
 async function saveComplete(){
   const id=document.getElementById('complete-id').value;
   const tt=document.getElementById('complete-task-type').value;
+  const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');
+  if(!sat){alert('Please select how you feel about this task before marking it done.');return;}
   const remarks=document.getElementById('complete-remarks').value.trim()||null;
+  const outcomeNote=document.getElementById('outcome-note').value.trim()||null;
   let decData=null,artifactLink=null;
   if(tt==='decide'){
     const dec=document.getElementById('dc-decision').value.trim();
     if(dec){const t=tasks.find(t=>t.id===id);decData={decision:dec,why:document.getElementById('dc-why').value.trim()||null,outcome:document.getElementById('dc-outcome').value.trim()||null,status:document.getElementById('dc-status').value,date:document.getElementById('dc-date').value||TODAY,owner:document.getElementById('dc-owner').value.trim()||'Sudharsan',participants:getChips('dc-participants')||null,workstream:t?.workstream||null,customer:t?.customer||null,task_id:id};}
   } else if(tt==='create'){artifactLink=document.getElementById('cc-link').value.trim()||null;}
-  await completeTask(id,remarks,decData,artifactLink);
+  await completeTask(id,remarks,decData,artifactLink,outcomeNote);
 }
 async function skipRemarks(){await completeTask(document.getElementById('complete-id').value,null,null,null);}
-async function completeTask(id,remarks,decData,artifactLink){
+async function completeTask(id,remarks,decData,artifactLink,outcomeNote){
   const now=new Date().toISOString();const upd={status:'done',completed_at:now,updated_at:now};
-  if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');if(sat>0)upd.satisfaction=sat;
-  // outcome metric
-  const omSel=document.getElementById('outcome-metric-select');
-  const omVal=document.getElementById('outcome-new-value').value;
-  if(omSel&&omSel.value&&omVal!==''){
-    await sb.from('task_outcomes').insert({task_id:id,metric_id:omSel.value,new_value:parseFloat(omVal),note:document.getElementById('outcome-note').value.trim()||null,logged_at:new Date().toISOString().split('T')[0]});
-  }
+  if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;
+  const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');if(sat>0)upd.satisfaction=sat;
+  if(outcomeNote)upd.outcome_note=outcomeNote;
   await sb.from('tasks').update(upd).eq('id',id);
   if(decData)await sb.from('decisions').insert(decData);
   const fs=focusSessions.find(s=>s.task_id===id);if(fs){await sb.from('focus_sessions').update({completed:true}).eq('id',fs.id);fs.completed=true;}
@@ -1918,6 +1902,25 @@ function copyTaskBrief(id){
   });
 }
 
+// ── MULTI-SOURCE ──────────────────────────────────────
+function addSourceRow(val=''){
+  const list=document.getElementById('f-sources-list');
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;gap:6px;margin-bottom:6px';
+  row.innerHTML=`<input class="form-input source-input" placeholder="https://…" value="${esc(val)}" style="flex:1"><button type="button" class="btn btn-sm btn-danger btn-icon" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+}
+function populateSources(source){
+  const list=document.getElementById('f-sources-list');
+  list.innerHTML='';
+  const srcs=(source||'').split('\n').filter(Boolean);
+  if(!srcs.length) addSourceRow();
+  else srcs.forEach(s=>addSourceRow(s));
+}
+function getSourceValue(){
+  return[...document.querySelectorAll('.source-input')].map(i=>i.value.trim()).filter(Boolean).join('\n')||null;
+}
+
 // ── SEND TO CLAUDE ────────────────────────────────────
 let _claudeTaskId=null;
 function openClaudeModal(id){
@@ -1943,7 +1946,8 @@ function openClaudeModal(id){
   document.getElementById('claude-scope-input').value=t.claude_scope||'';
   // Source link
   const linkEl=document.getElementById('claude-source-link');
-  linkEl.innerHTML=t.source?`<a href="${normalizeSource(t.source)}" target="_blank" style="color:var(--primary)">Open source ↗</a> <span style="color:var(--muted)">(link will be included in brief)</span>`:'<span style="color:var(--muted)">No source link on this task.</span>';
+  const srcLinks=(t.source||'').split('\n').filter(Boolean);
+  linkEl.innerHTML=srcLinks.length?srcLinks.map((s,i)=>`<a href="${normalizeSource(s)}" target="_blank" style="color:var(--primary);margin-right:10px">Source${srcLinks.length>1?' '+(i+1):''} ↗</a>`).join('')+'<span style="color:var(--muted)">(links included in brief)</span>':'<span style="color:var(--muted)">No source link on this task.</span>';
   document.getElementById('claude-modal').classList.add('open');
 }
 function closeClaudeModal(){document.getElementById('claude-modal').classList.remove('open');}
@@ -1967,7 +1971,7 @@ async function copyClaudeBrief(){
     t.assigned_to?`Assigned to: ${t.assigned_to}`:'',
     t.due_date?`Due: ${t.due_date}`:'',
     desc?`\n## Description\n${desc}`:'',
-    t.source?`\n## Source\n${t.source}`:'',
+    t.source?`\n## Sources\n${t.source.split('\n').filter(Boolean).join('\n')}`:'',
     sourceText?`\n## Source context\n${sourceText}`:'',
     scope?`\n## Instructions\n${scope}`:''
   ].filter(l=>l!==undefined).join('\n');
