@@ -303,7 +303,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.77 · 2026-05-27</div>
+  <div class="app-version">v1.78 · 2026-05-27</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -1631,19 +1631,6 @@ function openCompleteModal(id){
   } else if(isCreate){
     document.getElementById('cc-link').value='';document.getElementById('complete-modal-title').textContent='Complete & log artifact';
   } else document.getElementById('complete-modal-title').textContent='Mark task complete';
-    // Populate outcome metrics for this task's workstream
-  const taskWS=(t.workstream||'').split(',')[0].trim();
-  const wsMetrics=outcomeMetrics.filter(m=>m.workstream===taskWS);
-  const omSection=document.getElementById('outcome-section');
-  if(wsMetrics.length>0){
-    omSection.classList.remove('hidden');
-    document.getElementById('outcome-metric-select').innerHTML='<option value="">— select metric —</option>'+wsMetrics.map(m=>`<option value="${m.id}" data-unit="${m.unit}" data-dir="${m.direction}">${m.metric_name} (${m.unit})</option>`).join('');
-    document.getElementById('outcome-new-value').value='';
-    document.getElementById('outcome-note').value='';
-    document.getElementById('outcome-body').classList.add('hidden');
-    document.getElementById('outcome-toggle-arrow').textContent='▶';
-    document.getElementById('outcome-unit-label').textContent='';
-  } else { omSection.classList.add('hidden'); }
   document.getElementById('complete-modal').classList.add('open');
 }
 function closeCompleteModal(){document.getElementById('complete-modal').classList.remove('open');}
