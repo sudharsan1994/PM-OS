@@ -659,13 +659,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <label class="form-label">Completion remarks</label>
     <textarea class="form-textarea" id="complete-remarks" rows="3" placeholder="What got done, next steps…"></textarea>
   </div>
-  <!-- CREATE: artifact link -->
+  <!-- CREATE: artifact links -->
   <div class="dec-capture hidden" id="create-capture-section">
-    <div class="dec-capture-lbl">🔗 Link to artifact created</div>
-    <div class="form-group" style="margin-bottom:0">
-      <label class="form-label">Artifact URL</label>
-      <input class="form-input" id="cc-link" placeholder="https://… (doc, sheet, PRD, recording…)">
-    </div>
+    <div class="dec-capture-lbl">🔗 Artifacts created</div>
+    <div id="artifact-list"></div>
+    <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="addArtifactRow()">+ Add artifact</button>
   </div>
   <!-- DECIDE: decision capture -->
   <div class="dec-capture hidden" id="dec-capture-section">
@@ -685,23 +683,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </div>
   <!-- OUTCOME METRIC SECTION -->
   <div class="dec-capture" id="outcome-metric-section" style="margin-top:14px">
-    <div class="dec-capture-lbl">📊 Log outcome metric <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
-    <div class="form-row">
-      <div class="form-group" style="flex:2;margin-bottom:0">
-        <label class="form-label">Metric</label>
-        <select class="form-select" id="outcome-metric-select" onchange="onOutcomeMetricChange()">
-          <option value="">— no metric to log —</option>
-        </select>
-      </div>
-      <div class="form-group" style="flex:1;margin-bottom:0" id="outcome-value-group">
-        <label class="form-label">New value <span id="outcome-unit-label" style="font-weight:400;color:var(--muted)"></span></label>
-        <input class="form-input" id="outcome-metric-value" type="number" step="any" placeholder="0">
-      </div>
-    </div>
-    <div class="form-group" style="margin-top:8px;margin-bottom:0">
-      <label class="form-label">Note <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-      <input class="form-input" id="outcome-note" placeholder="What changed, context…">
-    </div>
+    <div class="dec-capture-lbl">📊 Log outcomes <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
+    <div id="outcome-rows-list"></div>
+    <button type="button" class="btn btn-sm" style="margin-top:4px" onclick="addOutcomeRow()">+ Add outcome</button>
   </div>
   <!-- SATISFACTION PICKER -->
   <div class="form-group" id="sat-group" style="margin-top:14px">
@@ -1472,7 +1456,7 @@ function taskCard(t,opts={}){
   const claudeBtn=!isCompleted?`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${t.id}')" title="Assign to Claude" style="color:#7C3AED;border-color:#C4B5FD">⚡</button>`:'';
 
   const remarks=isCompleted&&t.completion_remarks?`<div class="remarks-preview">${esc(t.completion_remarks.substring(0,120))}${t.completion_remarks.length>120?'…':''}</div>`:'';
-  const artifactLink=isCompleted&&t.artifact_link?`<a href="${t.artifact_link}" target="_blank" class="task-link">↗ View artifact</a>`:'';
+  const artifactLink=isCompleted&&t.artifact_link?t.artifact_link.split('\n').filter(Boolean).map((a,i,arr)=>`<a href="${a}" target="_blank" class="task-link">↗ Artifact${arr.length>1?' '+(i+1):''}</a>`).join(''):'';
   const cc=[isPinned?'focus-pinned':'',stale&&!hot?'stale':'',hot?'deferred-hot':''].filter(Boolean).join(' ');
   return`<li class="task-card${cc?' '+cc:''}">
     ${!isCompleted?`<div class="task-check" onclick="openCompleteModal('${t.id}')"></div>`:'<div style="width:18px;flex-shrink:0;color:var(--success);margin-top:2px">✓</div>'}
@@ -1634,7 +1618,7 @@ async function confirmDeleteTask(){
 // ── COMPLETE TASK ─────────────────────────────────────
 function openCompleteModal(id){
   const t=tasks.find(t=>t.id===id);if(!t)return;
-  document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-remarks').value='';document.getElementById('outcome-note').value='';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
+  document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-remarks').value='';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
   const isDecide=t.type==='decide',isCreate=t.type==='create';
   document.getElementById('dec-capture-section').classList.toggle('hidden',!isDecide);
   document.getElementById('create-capture-section').classList.toggle('hidden',!isCreate);
@@ -1644,40 +1628,38 @@ function openCompleteModal(id){
     renderChips('dc-participants',[]);
     document.getElementById('complete-modal-title').textContent='Complete & log decision';
   } else if(isCreate){
-    document.getElementById('cc-link').value='';document.getElementById('complete-modal-title').textContent='Complete & log artifact';
+    document.getElementById('artifact-list').innerHTML='';addArtifactRow();document.getElementById('complete-modal-title').textContent='Complete & log artifact';
   } else document.getElementById('complete-modal-title').textContent='Mark task complete';
   populateOutcomeMetricsInModal(t.workstream);
   document.getElementById('complete-modal').classList.add('open');
 }
+let _outcomeModalMetrics=[];
 function populateOutcomeMetricsInModal(workstream){
-  const sel=document.getElementById('outcome-metric-select');if(!sel)return;
-  sel.innerHTML='<option value="">— no metric to log —</option>';
-  document.getElementById('outcome-metric-value').value='';
-  document.getElementById('outcome-note').value='';
-  document.getElementById('outcome-unit-label').textContent='';
-  const relevant=workstream
+  const list=document.getElementById('outcome-rows-list');if(!list)return;
+  list.innerHTML='';
+  _outcomeModalMetrics=workstream
     ?outcomeMetrics.filter(m=>m.workstream===workstream)
-    :outcomeMetrics;
-  relevant.forEach(m=>{
-    const opt=document.createElement('option');
-    opt.value=m.id;opt.dataset.unit=m.unit||'';
-    opt.textContent=m.metric_name+(m.unit?' ('+m.unit+')':'');
-    sel.appendChild(opt);
-  });
-  if(!relevant.length&&outcomeMetrics.length){
-    // workstream has no metrics — show all as fallback
-    outcomeMetrics.forEach(m=>{
-      const opt=document.createElement('option');
-      opt.value=m.id;opt.dataset.unit=m.unit||'';
-      opt.textContent=m.workstream+' — '+m.metric_name+(m.unit?' ('+m.unit+')':'');
-      sel.appendChild(opt);
-    });
-  }
+    :[];
+  if(!_outcomeModalMetrics.length&&outcomeMetrics.length)_outcomeModalMetrics=outcomeMetrics; // fallback: all
+  if(_outcomeModalMetrics.length)addOutcomeRow();
 }
-function onOutcomeMetricChange(){
-  const sel=document.getElementById('outcome-metric-select');
-  const opt=sel.options[sel.selectedIndex];
-  document.getElementById('outcome-unit-label').textContent=opt?.dataset?.unit?'('+opt.dataset.unit+')':'';
+function addOutcomeRow(){
+  const list=document.getElementById('outcome-rows-list');if(!list)return;
+  const row=document.createElement('div');
+  row.className='outcome-row';
+  row.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:nowrap';
+  const opts=_outcomeModalMetrics.map(m=>`<option value="${m.id}">${esc(m.metric_name)}${m.unit?' ('+m.unit+')':''}</option>`).join('');
+  row.innerHTML=`<select class="form-select outcome-metric-sel" style="flex:2;min-width:0"><option value="">— metric —</option>${opts}</select><input class="form-input outcome-val-input" type="number" step="any" placeholder="Value" style="flex:0 0 80px"><input class="form-input outcome-note-input" placeholder="Note…" style="flex:2;min-width:0"><button type="button" class="btn btn-sm btn-danger btn-icon" onclick="this.closest('.outcome-row').remove()">✕</button>`;
+  list.appendChild(row);
+}
+function getOutcomeRows(){
+  return[...document.querySelectorAll('.outcome-row')].map(row=>{
+    const metricId=row.querySelector('.outcome-metric-sel').value;
+    const val=row.querySelector('.outcome-val-input').value;
+    const note=row.querySelector('.outcome-note-input').value.trim();
+    if(!metricId||val==='')return null;
+    return{metric_id:metricId,new_value:parseFloat(val),note:note||null};
+  }).filter(Boolean);
 }
 function closeCompleteModal(){document.getElementById('complete-modal').classList.remove('open');}
 async function saveComplete(){
@@ -1686,25 +1668,22 @@ async function saveComplete(){
   const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');
   if(!sat){alert('Please select how you feel about this task before marking it done.');return;}
   const remarks=document.getElementById('complete-remarks').value.trim()||null;
-  const metricId=document.getElementById('outcome-metric-select').value||null;
-  const metricValue=document.getElementById('outcome-metric-value').value;
-  const metricNote=document.getElementById('outcome-note').value.trim()||null;
-  const outcomeData=(metricId&&metricValue!=='')?{metric_id:metricId,new_value:parseFloat(metricValue),note:metricNote}:null;
+  const outcomeRows=getOutcomeRows();
   let decData=null,artifactLink=null;
   if(tt==='decide'){
     const dec=document.getElementById('dc-decision').value.trim();
     if(dec){const t=tasks.find(t=>t.id===id);decData={decision:dec,why:document.getElementById('dc-why').value.trim()||null,outcome:document.getElementById('dc-outcome').value.trim()||null,status:document.getElementById('dc-status').value,date:document.getElementById('dc-date').value||TODAY,owner:document.getElementById('dc-owner').value.trim()||'Sudharsan',participants:getChips('dc-participants')||null,workstream:t?.workstream||null,customer:t?.customer||null,task_id:id};}
-  } else if(tt==='create'){artifactLink=document.getElementById('cc-link').value.trim()||null;}
-  await completeTask(id,remarks,decData,artifactLink,outcomeData);
+  } else if(tt==='create'){artifactLink=getArtifactLinks();}
+  await completeTask(id,remarks,decData,artifactLink,outcomeRows);
 }
-async function skipRemarks(){await completeTask(document.getElementById('complete-id').value,null,null,null,null);}
-async function completeTask(id,remarks,decData,artifactLink,outcomeData){
+async function skipRemarks(){await completeTask(document.getElementById('complete-id').value,null,null,null,[]);}
+async function completeTask(id,remarks,decData,artifactLink,outcomeRows){
   const now=new Date().toISOString();const upd={status:'done',completed_at:now,updated_at:now};
   if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;
   const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');if(sat>0)upd.satisfaction=sat;
   await sb.from('tasks').update(upd).eq('id',id);
   if(decData)await sb.from('decisions').insert(decData);
-  if(outcomeData)await sb.from('task_outcomes').insert({task_id:id,metric_id:outcomeData.metric_id,new_value:outcomeData.new_value,note:outcomeData.note||null,logged_at:now});
+  if(outcomeRows&&outcomeRows.length)await sb.from('task_outcomes').insert(outcomeRows.map(o=>({task_id:id,metric_id:o.metric_id,new_value:o.new_value,note:o.note||null,logged_at:now})));
   const fs=focusSessions.find(s=>s.task_id===id);if(fs){await sb.from('focus_sessions').update({completed:true}).eq('id',fs.id);fs.completed=true;}
   tasks=tasks.filter(t=>t.id!==id);closeCompleteModal();renderTodayTasks();renderAllTasks();renderFocusSlots();
 }
@@ -1956,6 +1935,16 @@ function populateSources(source){
 function getSourceValue(){
   return[...document.querySelectorAll('.source-input')].map(i=>i.value.trim()).filter(Boolean).join('\n')||null;
 }
+function addArtifactRow(val=''){
+  const list=document.getElementById('artifact-list');
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;gap:6px;margin-bottom:6px';
+  row.innerHTML=`<input class="form-input artifact-input" placeholder="https://… (doc, sheet, PRD, recording…)" value="${esc(val)}" style="flex:1"><button type="button" class="btn btn-sm btn-danger btn-icon" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+}
+function getArtifactLinks(){
+  return[...document.querySelectorAll('.artifact-input')].map(i=>i.value.trim()).filter(Boolean).join('\n')||null;
+}
 
 // ── SEND TO CLAUDE ────────────────────────────────────
 let _claudeTaskId=null;
@@ -2052,13 +2041,6 @@ function toggleOutcomeSection(){
   body.classList.toggle('hidden',!isHidden);
   arrow.textContent=isHidden?'▼':'▶';
 }
-document.addEventListener('change',function(e){
-  if(e.target.id==='outcome-metric-select'){
-    const opt=e.target.selectedOptions[0];
-    const unit=opt?.dataset.unit||'';
-    document.getElementById('outcome-unit-label').textContent=unit?`(${unit})`:'';
-  }
-});
 
 function renderOutcomeMetricsSettings(){
   const el=document.getElementById('outcome-metrics-list');if(!el)return;
@@ -2078,12 +2060,25 @@ function renderOutcomeMetricsSettings(){
     <div style="margin-bottom:10px">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px">${esc(ws)}</div>
       ${metrics.map(m=>`<div class="om-def-row">
-        <span class="om-def-name">${esc(m.metric_name)}</span>
-        <span class="om-def-unit">${esc(m.unit)}</span>
-        <span class="om-def-dir">${m.direction==='up_good'?'↑ higher=better':'↓ lower=better'}</span>
+        <input class="m-inline om-def-name" value="${esc(m.metric_name)}" placeholder="Metric name" onblur="saveOutcomeMetricField('${m.id}','metric_name',this.value)">
+        <select class="f-select" style="flex:0 0 auto" onchange="saveOutcomeMetricField('${m.id}','unit',this.value)">
+          <option value="%"${m.unit==='%'?' selected':''}>%</option>
+          <option value="count"${m.unit==='count'?' selected':''}>count</option>
+          <option value="hours"${m.unit==='hours'?' selected':''}>hrs</option>
+          <option value="days"${m.unit==='days'?' selected':''}>days</option>
+          <option value="score"${m.unit==='score'?' selected':''}>score</option>
+        </select>
+        <select class="f-select" style="flex:0 0 auto" onchange="saveOutcomeMetricField('${m.id}','direction',this.value)">
+          <option value="up_good"${m.direction==='up_good'?' selected':''}>↑ higher</option>
+          <option value="down_good"${m.direction==='down_good'?' selected':''}>↓ lower</option>
+        </select>
         <button class="btn btn-sm btn-danger btn-icon" onclick="rmOutcomeMetric('${m.id}')">✕</button>
       </div>`).join('')}
     </div>`).join('');
+}
+async function saveOutcomeMetricField(id,field,value){
+  await sb.from('outcome_metrics').update({[field]:value||null}).eq('id',id);
+  const m=outcomeMetrics.find(m=>m.id===id);if(m)m[field]=value||null;
 }
 
 async function addOutcomeMetric(){
