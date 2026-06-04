@@ -684,9 +684,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     </div>
   </div>
   <!-- OUTCOME METRIC SECTION -->
-  <div class="form-group">
-    <label class="form-label">Outcome / metric moved <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(optional — what changed as a result of this task?)</span></label>
-    <input class="form-input" id="outcome-note" placeholder="e.g. False positive rate dropped to 38% · Charter Hall approved go-live · Resolved 3 open blockers">
+  <div class="dec-capture" id="outcome-metric-section" style="margin-top:14px">
+    <div class="dec-capture-lbl">📊 Log outcome metric <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2;margin-bottom:0">
+        <label class="form-label">Metric</label>
+        <select class="form-select" id="outcome-metric-select" onchange="onOutcomeMetricChange()">
+          <option value="">— no metric to log —</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1;margin-bottom:0" id="outcome-value-group">
+        <label class="form-label">New value <span id="outcome-unit-label" style="font-weight:400;color:var(--muted)"></span></label>
+        <input class="form-input" id="outcome-metric-value" type="number" step="any" placeholder="0">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:8px;margin-bottom:0">
+      <label class="form-label">Note <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <input class="form-input" id="outcome-note" placeholder="What changed, context…">
+    </div>
   </div>
   <!-- SATISFACTION PICKER -->
   <div class="form-group" id="sat-group" style="margin-top:14px">
@@ -1023,7 +1038,7 @@ function renderFocusSlots(){
     const statusBadge=s.completed?'<span class="status-badge done">✓ Done</span>':s.not_done_today?'<span class="status-badge not-today">✗ Not done today</span>':'';
     const cb=s.carried_forward?'<span class="carried-badge">↩ Carried</span>':'';
     // Rich badges — same as task cards
-    const tb=tk.type?`<span class="badge b-${cleanType(tk.type)}">${cap(tk.type)}</span>`:'';
+    const tb=tk.type?`<span class="badge b-${cleanType(tk.type)}">${cap(tk.type)}</span>`:`<span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;cursor:pointer" onclick="openEditTask('${tk.id}')">⚠ Set type</span>`;
     const pb=tk.priority?`<span class="badge b-${tk.priority}">${cap(tk.priority)}</span>`:'';
     const wb=tk.workstream?`<span class="badge b-ws">${esc(tk.workstream.split(',')[0].trim())}</span>`:'';
     const custb=tk.customer?`<span class="badge b-customer">${esc(tk.customer)}</span>`:'';
@@ -1467,7 +1482,7 @@ function taskCard(t,opts={}){
           ${isPinned?'<span class="badge b-focus">⭐ Focus</span>':''}
           ${deepBadge}
           ${t.priority?`<span class="badge b-${t.priority}">${cap(t.priority)}</span>`:''}
-          ${t.type?`<span class="badge b-${cleanType(t.type)}">${cap(t.type)}</span>`:''}
+          ${t.type?`<span class="badge b-${cleanType(t.type)}">${cap(t.type)}</span>`:`<span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;cursor:pointer" onclick="openEditTask('${t.id}')">⚠ Set type</span>`}
           ${t.customer?`<span class="badge b-customer">${esc(t.customer)}</span>`:''}
           ${(t.workstream||'').split(',').filter(Boolean).slice(0,2).map(w=>`<span class="badge b-ws">${esc(w.trim())}</span>`).join('')}
           ${ci?`<span class="badge b-channel">${ci} ${cap(ch)}</span>`:''}
@@ -1631,7 +1646,38 @@ function openCompleteModal(id){
   } else if(isCreate){
     document.getElementById('cc-link').value='';document.getElementById('complete-modal-title').textContent='Complete & log artifact';
   } else document.getElementById('complete-modal-title').textContent='Mark task complete';
+  populateOutcomeMetricsInModal(t.workstream);
   document.getElementById('complete-modal').classList.add('open');
+}
+function populateOutcomeMetricsInModal(workstream){
+  const sel=document.getElementById('outcome-metric-select');if(!sel)return;
+  sel.innerHTML='<option value="">— no metric to log —</option>';
+  document.getElementById('outcome-metric-value').value='';
+  document.getElementById('outcome-note').value='';
+  document.getElementById('outcome-unit-label').textContent='';
+  const relevant=workstream
+    ?outcomeMetrics.filter(m=>m.workstream===workstream)
+    :outcomeMetrics;
+  relevant.forEach(m=>{
+    const opt=document.createElement('option');
+    opt.value=m.id;opt.dataset.unit=m.unit||'';
+    opt.textContent=m.metric_name+(m.unit?' ('+m.unit+')':'');
+    sel.appendChild(opt);
+  });
+  if(!relevant.length&&outcomeMetrics.length){
+    // workstream has no metrics — show all as fallback
+    outcomeMetrics.forEach(m=>{
+      const opt=document.createElement('option');
+      opt.value=m.id;opt.dataset.unit=m.unit||'';
+      opt.textContent=m.workstream+' — '+m.metric_name+(m.unit?' ('+m.unit+')':'');
+      sel.appendChild(opt);
+    });
+  }
+}
+function onOutcomeMetricChange(){
+  const sel=document.getElementById('outcome-metric-select');
+  const opt=sel.options[sel.selectedIndex];
+  document.getElementById('outcome-unit-label').textContent=opt?.dataset?.unit?'('+opt.dataset.unit+')':'';
 }
 function closeCompleteModal(){document.getElementById('complete-modal').classList.remove('open');}
 async function saveComplete(){
@@ -1640,22 +1686,25 @@ async function saveComplete(){
   const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');
   if(!sat){alert('Please select how you feel about this task before marking it done.');return;}
   const remarks=document.getElementById('complete-remarks').value.trim()||null;
-  const outcomeNote=document.getElementById('outcome-note').value.trim()||null;
+  const metricId=document.getElementById('outcome-metric-select').value||null;
+  const metricValue=document.getElementById('outcome-metric-value').value;
+  const metricNote=document.getElementById('outcome-note').value.trim()||null;
+  const outcomeData=(metricId&&metricValue!=='')?{metric_id:metricId,new_value:parseFloat(metricValue),note:metricNote}:null;
   let decData=null,artifactLink=null;
   if(tt==='decide'){
     const dec=document.getElementById('dc-decision').value.trim();
     if(dec){const t=tasks.find(t=>t.id===id);decData={decision:dec,why:document.getElementById('dc-why').value.trim()||null,outcome:document.getElementById('dc-outcome').value.trim()||null,status:document.getElementById('dc-status').value,date:document.getElementById('dc-date').value||TODAY,owner:document.getElementById('dc-owner').value.trim()||'Sudharsan',participants:getChips('dc-participants')||null,workstream:t?.workstream||null,customer:t?.customer||null,task_id:id};}
   } else if(tt==='create'){artifactLink=document.getElementById('cc-link').value.trim()||null;}
-  await completeTask(id,remarks,decData,artifactLink,outcomeNote);
+  await completeTask(id,remarks,decData,artifactLink,outcomeData);
 }
-async function skipRemarks(){await completeTask(document.getElementById('complete-id').value,null,null,null);}
-async function completeTask(id,remarks,decData,artifactLink,outcomeNote){
+async function skipRemarks(){await completeTask(document.getElementById('complete-id').value,null,null,null,null);}
+async function completeTask(id,remarks,decData,artifactLink,outcomeData){
   const now=new Date().toISOString();const upd={status:'done',completed_at:now,updated_at:now};
   if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;
   const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');if(sat>0)upd.satisfaction=sat;
-  if(outcomeNote)upd.outcome_note=outcomeNote;
   await sb.from('tasks').update(upd).eq('id',id);
   if(decData)await sb.from('decisions').insert(decData);
+  if(outcomeData)await sb.from('task_outcomes').insert({task_id:id,metric_id:outcomeData.metric_id,new_value:outcomeData.new_value,note:outcomeData.note||null,logged_at:now});
   const fs=focusSessions.find(s=>s.task_id===id);if(fs){await sb.from('focus_sessions').update({completed:true}).eq('id',fs.id);fs.completed=true;}
   tasks=tasks.filter(t=>t.id!==id);closeCompleteModal();renderTodayTasks();renderAllTasks();renderFocusSlots();
 }
@@ -1833,8 +1882,8 @@ function normalizeSource(src){
   if(src.startsWith('teams:///')||src.startsWith('msteams://')){
     // Chat messages (1:1 or group): teams:///chats/{chatId}/messages/{msgId}
     // → https://teams.microsoft.com/l/chat/{chatId}/0  (opens the chat thread)
-    const chatM=src.match(/chats\/([^/]+)\/messages\//);
-    if(chatM)return`https://teams.microsoft.com/l/chat/${chatM[1]}/0`;
+    const chatM=src.match(/chats\/([^/]+)\/messages\/(\d+)/);
+    if(chatM)return`https://teams.microsoft.com/l/chat/${chatM[1]}/${chatM[2]}`;
     // Channel messages: teams:///teams/{teamId}/channels/{channelId}/messages/{msgId}
     const chanM=src.match(/channels\/([^/]+)\/messages\/(\d+)/);
     if(chanM)return`https://teams.microsoft.com/l/message/${chanM[1]}/${chanM[2]}`;
