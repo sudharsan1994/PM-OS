@@ -1862,7 +1862,7 @@ function normalizeSource(src){
     // Chat messages (1:1 or group): teams:///chats/{chatId}/messages/{msgId}
     // → https://teams.microsoft.com/l/chat/{chatId}/0  (opens the chat thread)
     const chatM=src.match(/chats\/([^/]+)\/messages\/(\d+)/);
-    if(chatM)return`https://teams.microsoft.com/l/chat/${chatM[1]}/${chatM[2]}`;
+    if(chatM)return`https://teams.microsoft.com/l/message/${chatM[1]}/${chatM[2]}?context=${encodeURIComponent(JSON.stringify({contextType:'chat'}))}`;
     // Channel messages: teams:///teams/{teamId}/channels/{channelId}/messages/{msgId}
     const chanM=src.match(/channels\/([^/]+)\/messages\/(\d+)/);
     if(chanM)return`https://teams.microsoft.com/l/message/${chanM[1]}/${chanM[2]}`;
