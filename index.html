@@ -215,6 +215,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sat-btn{font-size:22px;background:none;border:2px solid var(--border);border-radius:var(--r);padding:6px 14px;cursor:pointer;transition:all .1s;line-height:1}
 .sat-btn:hover{border-color:var(--primary)}
 .sat-btn.sat-active{border-color:var(--primary);background:var(--primary-light)}
+.impact-btn{font-size:13px;font-weight:600;color:var(--muted)}
+.impact-btn.sat-active{color:var(--primary)}
 /* DEEP WORK TOGGLE */
 .deep-toggle{display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;transition:all .1s}
 .deep-toggle:hover{border-color:var(--primary);background:var(--primary-light)}
@@ -303,7 +305,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.78 · 2026-05-27</div>
+  <div class="app-version">v1.79 · 2026-06-17</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -655,9 +657,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="modal-overlay" id="complete-modal">
 <div class="modal">
   <div class="modal-title" id="complete-modal-title">Mark task complete</div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Workstream</label><select class="form-select" id="complete-workstream" onchange="onCompleteWorkstreamChange()"></select></div>
+    <div class="form-group"><label class="form-label">Customer</label><select class="form-select" id="complete-customer"></select></div>
+  </div>
   <div class="form-group">
-    <label class="form-label">Completion remarks</label>
-    <textarea class="form-textarea" id="complete-remarks" rows="3" placeholder="What got done, next steps…"></textarea>
+    <label class="form-label">Outcome — what changed / result <span style="color:var(--danger)">*</span></label>
+    <textarea class="form-textarea" id="complete-remarks" rows="3" placeholder="What is different now? e.g. 'Customer signed off BRD', 'Bug fixed, validator live for Charter Hall', 'Decided WhatsApp-only — comms sent'. Not just 'done'."></textarea>
   </div>
   <!-- CREATE: artifact links -->
   <div class="dec-capture hidden" id="create-capture-section">
@@ -683,13 +689,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </div>
   <!-- OUTCOME METRIC SECTION -->
   <div class="dec-capture" id="outcome-metric-section" style="margin-top:14px">
-    <div class="dec-capture-lbl">📊 Log outcomes <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
+    <div class="dec-capture-lbl">📊 Move a metric <span style="font-weight:400;color:var(--muted)">(optional — link this to a workstream metric)</span></div>
     <div id="outcome-rows-list"></div>
-    <button type="button" class="btn btn-sm" style="margin-top:4px" onclick="addOutcomeRow()">+ Add outcome</button>
+    <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+      <button type="button" class="btn btn-sm" onclick="addOutcomeRow()">+ Add outcome</button>
+      <button type="button" class="btn btn-sm" onclick="addNewMetric()" title="Create a new metric for this workstream">+ New metric for this workstream</button>
+    </div>
   </div>
-  <!-- SATISFACTION PICKER -->
+  <!-- IMPACT PICKER (primary quality axis) -->
+  <div class="form-group" id="impact-group" style="margin-top:14px">
+    <label class="form-label">Impact <span style="color:var(--danger)">*</span> <span style="font-weight:400;color:var(--muted)">— how much did this matter?</span></label>
+    <div class="sat-picker">
+      <button type="button" class="sat-btn impact-btn" id="impact-low" onclick="setImpact('low')" title="Low — routine / keeps lights on">Low</button>
+      <button type="button" class="sat-btn impact-btn" id="impact-medium" onclick="setImpact('medium')" title="Medium — meaningful progress">Medium</button>
+      <button type="button" class="sat-btn impact-btn" id="impact-high" onclick="setImpact('high')" title="High — moved a customer or a metric">High</button>
+    </div>
+  </div>
+  <input type="hidden" id="complete-impact" value="">
+  <!-- SATISFACTION PICKER (secondary, optional) -->
   <div class="form-group" id="sat-group" style="margin-top:14px">
-    <label class="form-label">How do you feel about this task? <span style="color:var(--danger)">*</span></label>
+    <label class="form-label">How did it feel? <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
     <div class="sat-picker">
       <button type="button" class="sat-btn" id="sat-1" onclick="setSatisfaction(1)" title="Not happy">😞</button>
       <button type="button" class="sat-btn" id="sat-2" onclick="setSatisfaction(2)" title="Okay">😐</button>
@@ -720,6 +739,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <button class="btn" onclick="closeDelegateModal()">Cancel</button>
     <button class="btn btn-primary" onclick="approveDelegation()">Approve & copy</button>
   </div>
+</div>
+</div>
+
+<!-- DISPOSITION MODAL -->
+<div class="modal-overlay" id="disp-modal">
+<div class="modal" style="max-width:460px">
+  <div class="modal-title">What really happened here?</div>
+  <div id="disp-task-title" style="font-size:13px;color:var(--muted);margin:-6px 0 12px"></div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn" style="justify-content:flex-start;text-align:left;height:auto;padding:10px 12px" onclick="dispDelegate()"><div><strong>👤 Delegated to someone</strong><div style="font-size:11px;color:var(--muted)">Owned by another person now. Tracked, but not your completion — no done button.</div></div></button>
+    <button class="btn" style="justify-content:flex-start;text-align:left;height:auto;padding:10px 12px" onclick="dispSet('noise')"><div><strong>🔇 Noise — not actionable</strong><div style="font-size:11px;color:var(--muted)">Real message, but no real work for anyone (FYI, ack, "not my problem").</div></div></button>
+    <button class="btn" style="justify-content:flex-start;text-align:left;height:auto;padding:10px 12px" onclick="dispSet('intake_error')"><div><strong>⚠️ Intake error</strong><div style="font-size:11px;color:var(--muted)">PM-OS shouldn't have created this. Kept as a signal of intake misfires.</div></div></button>
+    <button class="btn btn-danger" style="justify-content:flex-start;text-align:left;height:auto;padding:10px 12px" onclick="dispSet('deleted')"><div><strong>🗑 Delete</strong><div style="font-size:11px;color:#fff;opacity:.85">Duplicate / junk. Use Intake error instead if you want to keep the signal.</div></div></button>
+  </div>
+  <input type="hidden" id="disp-id">
+  <div class="modal-actions"><button class="btn" onclick="closeDispModal()">Cancel</button></div>
 </div>
 </div>
 
@@ -812,7 +847,7 @@ async function init(){
 
 async function loadAll(){
   const [tR,tmR,cR,wsR,trR,omR,fsR,yfR]=await Promise.all([
-    sb.from('tasks').select('*').neq('status','done').neq('status','deleted').order('created_at',{ascending:false}),
+    sb.from('tasks').select('*').neq('status','done').neq('status','deleted').neq('status','noise').neq('status','intake_error').neq('status','delegated').order('created_at',{ascending:false}),
     sb.from('team_members').select('*').eq('active',true),
     sb.from('customers').select('*').eq('active',true),
     sb.from('workstreams').select('*').eq('active',true),
@@ -1037,7 +1072,13 @@ function renderFocusSlots(){
     const srcLink=tk.source?`<a href="${normalizeSource(tk.source)}" target="_blank" class="task-link" style="font-size:11px">Open thread ↗</a>`:'';
     const reqLine=tk.requester?`<span style="font-size:11px;color:var(--muted)">from ${esc(tk.requester)}</span>`:'';
     const chb=chIcon?`<span class="badge b-channel">${chIcon} ${cap(ch)}</span>`:'';
-    const ab=(!s.completed&&!s.not_done_today)?`<button class="btn btn-sm btn-success btn-icon" onclick="markFocusDone('${s.id}')">✓</button>`:'';
+    const live=(!s.completed&&!s.not_done_today);
+    // Full action parity with task cards (v1.79). Star = Remove focus (no "set focus" — it's already pinned).
+    const unfocusBtn=tk.id?`<button class="btn btn-sm btn-icon btn-focus is-focus" onclick="toggleFocus('${tk.id}')" title="Remove focus">⭐</button>`:'';
+    const claudeB=(live&&tk.id)?`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${tk.id}')" title="Assign to Claude" style="color:#7C3AED;border-color:#C4B5FD">⚡</button>`:'';
+    const deferB=(live&&tk.id)?`<button class="btn btn-sm btn-icon btn-defer" onclick="pushToTomorrow('${tk.id}')" title="Push to tomorrow">⏩</button>`:'';
+    const dispB=(live&&tk.id)?`<button class="btn btn-sm btn-icon" onclick="openDispModal('${tk.id}')" title="Not done by me — delegate / noise / intake error / delete" style="color:var(--muted)">⊘</button>`:'';
+    const ab=live?`<button class="btn btn-sm btn-success btn-icon" onclick="markFocusDone('${s.id}')" title="Complete">✓</button>`:'';
     const editBtn=tk.id?`<button class="btn btn-sm btn-icon" onclick="openEditTask('${tk.id}')" title="Edit task"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:'';
     return`<div class="focus-slot ${cls}">
       <span class="focus-num">${s.slot}</span>
@@ -1046,7 +1087,7 @@ function renderFocusSlots(){
         <div class="focus-meta" style="margin-bottom:4px">${cb}${pb}${tb}${wb}${custb}${chb}${etab}${awb}${defb}${statusBadge}</div>
         <div style="display:flex;gap:10px;align-items:center">${reqLine}${srcLink}</div>
       </div>
-      <div class="focus-actions">${editBtn}${ab}</div>
+      <div class="focus-actions">${unfocusBtn}${claudeB}${deferB}${dispB}${editBtn}${ab}</div>
     </div>`;
   }).join('');
 }
@@ -1449,9 +1490,10 @@ function taskCard(t,opts={}){
   const editBtn=`<button class="btn btn-sm btn-icon" onclick="openEditTask('${t.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
   const doneBtn=!isCompleted?`<button class="btn btn-sm btn-icon btn-success" onclick="openCompleteModal('${t.id}')">✓</button>`:'';
   const deferBtn=!isCompleted?`<button class="btn btn-sm btn-icon btn-defer" onclick="pushToTomorrow('${t.id}')" title="Push to tomorrow">⏩</button>`:'';
-  const trashBtn=!isCompleted?`<button class="btn btn-sm btn-icon btn-danger" onclick="deleteTaskDirect('${t.id}')" title="Delete task">🗑</button>`:'';
+  const dispBtn=!isCompleted?`<button class="btn btn-sm btn-icon" onclick="openDispModal('${t.id}')" title="Not done by me — delegate / noise / intake error / delete" style="color:var(--muted)">⊘</button>`:'';
   const deepBadge=t.is_deep_work&&!isCompleted?'<span class="badge b-focus" style="background:#F5F3FF;color:#6D28D9">🧠 Deep</span>':'';
   const satEmoji=isCompleted&&t.satisfaction?['','😞','😐','😊'][t.satisfaction]:'';
+  const impactBadge=isCompleted&&t.impact?`<span class="badge" style="background:${t.impact==='high'?'#DCFCE7':t.impact==='medium'?'#FEF9C3':'#F1F5F9'};color:${t.impact==='high'?'#166534':t.impact==='medium'?'#854D0E':'#64748B'}" title="Impact">${cap(t.impact)} impact</span>`:'';
   const copyBtn=`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${t.id}')" title="Send to Claude" style="color:var(--muted)">⚡</button>`;
   const claudeBtn=!isCompleted?`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${t.id}')" title="Assign to Claude" style="color:#7C3AED;border-color:#C4B5FD">⚡</button>`:'';
 
@@ -1482,7 +1524,7 @@ function taskCard(t,opts={}){
       </div>
       ${remarks}
     </div>
-    <div class="task-actions" style="align-items:center">${satEmoji?`<span style="font-size:16px" title="Satisfaction">${satEmoji}</span>`:''} ${focusBtn}${claudeBtn}${deferBtn}${trashBtn}${editBtn}${doneBtn}</div>
+    <div class="task-actions" style="align-items:center">${satEmoji?`<span style="font-size:16px" title="Satisfaction">${satEmoji}</span>`:''}${impactBadge} ${focusBtn}${claudeBtn}${deferBtn}${dispBtn}${editBtn}${doneBtn}</div>
   </li>`;
 }
 
@@ -1492,7 +1534,7 @@ async function pushToTomorrow(id){
   const nc=(t.deferred_count||0)+1;
   await sb.from('tasks').update({due_date:TOMORROW,deferred_count:nc,updated_at:new Date().toISOString()}).eq('id',id);
   t.due_date=TOMORROW;t.deferred_count=nc;
-  renderTodayTasks();renderAllTasks();
+  renderTodayTasks();renderAllTasks();renderFocusSlots();
 }
 
 // ── FOCUS CRUD ────────────────────────────────────────
@@ -1619,6 +1661,15 @@ async function confirmDeleteTask(){
 function openCompleteModal(id){
   const t=tasks.find(t=>t.id===id);if(!t)return;
   document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-remarks').value='';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
+  document.getElementById('complete-impact').value='';['impact-low','impact-medium','impact-high'].forEach(x=>document.getElementById(x)?.classList.remove('sat-active'));
+  const wsSel=document.getElementById('complete-workstream');
+  wsSel.innerHTML='<option value="">— none —</option>'+workstreams.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
+  if(t.workstream&&!workstreams.some(w=>w.name===t.workstream))wsSel.insertAdjacentHTML('beforeend',`<option value="${esc(t.workstream)}">${esc(t.workstream)}</option>`);
+  wsSel.value=t.workstream||'';
+  const cuSel=document.getElementById('complete-customer');
+  cuSel.innerHTML='<option value="">— none —</option>'+customers.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  if(t.customer&&!customers.some(c=>c.name===t.customer))cuSel.insertAdjacentHTML('beforeend',`<option value="${esc(t.customer)}">${esc(t.customer)}</option>`);
+  cuSel.value=t.customer||'';
   const isDecide=t.type==='decide',isCreate=t.type==='create';
   document.getElementById('dec-capture-section').classList.toggle('hidden',!isDecide);
   document.getElementById('create-capture-section').classList.toggle('hidden',!isCreate);
@@ -1665,21 +1716,27 @@ function closeCompleteModal(){document.getElementById('complete-modal').classLis
 async function saveComplete(){
   const id=document.getElementById('complete-id').value;
   const tt=document.getElementById('complete-task-type').value;
-  const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');
-  if(!sat){alert('Please select how you feel about this task before marking it done.');return;}
+  const impact=document.getElementById('complete-impact').value;
   const remarks=document.getElementById('complete-remarks').value.trim()||null;
+  if(!remarks){alert('Outcome is required. Say what changed / the result — not just "done". If nothing changed and this wasn\'t really your work, close it as Noise or Delegated instead.');return;}
+  if(!impact){alert('Pick an impact level (Low / Medium / High) before marking done.');return;}
+  const ws=document.getElementById('complete-workstream').value||null;
+  const cust=document.getElementById('complete-customer').value||null;
   const outcomeRows=getOutcomeRows();
   let decData=null,artifactLink=null;
   if(tt==='decide'){
     const dec=document.getElementById('dc-decision').value.trim();
-    if(dec){const t=tasks.find(t=>t.id===id);decData={decision:dec,why:document.getElementById('dc-why').value.trim()||null,outcome:document.getElementById('dc-outcome').value.trim()||null,status:document.getElementById('dc-status').value,date:document.getElementById('dc-date').value||TODAY,owner:document.getElementById('dc-owner').value.trim()||'Sudharsan',participants:getChips('dc-participants')||null,workstream:t?.workstream||null,customer:t?.customer||null,task_id:id};}
+    if(dec){decData={decision:dec,why:document.getElementById('dc-why').value.trim()||null,outcome:document.getElementById('dc-outcome').value.trim()||null,status:document.getElementById('dc-status').value,date:document.getElementById('dc-date').value||TODAY,owner:document.getElementById('dc-owner').value.trim()||'Sudharsan',participants:getChips('dc-participants')||null,workstream:ws,customer:cust,task_id:id};}
   } else if(tt==='create'){artifactLink=getArtifactLinks();}
-  await completeTask(id,remarks,decData,artifactLink,outcomeRows);
+  await completeTask(id,remarks,decData,artifactLink,outcomeRows,{impact,workstream:ws,customer:cust});
 }
-async function skipRemarks(){await completeTask(document.getElementById('complete-id').value,null,null,null,[]);}
-async function completeTask(id,remarks,decData,artifactLink,outcomeRows){
+async function completeTask(id,remarks,decData,artifactLink,outcomeRows,extra){
+  extra=extra||{};
   const now=new Date().toISOString();const upd={status:'done',completed_at:now,updated_at:now};
   if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;
+  if(extra.impact)upd.impact=extra.impact;
+  if(extra.workstream!==undefined)upd.workstream=extra.workstream;
+  if(extra.customer!==undefined)upd.customer=extra.customer;
   const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');if(sat>0)upd.satisfaction=sat;
   await sb.from('tasks').update(upd).eq('id',id);
   if(decData)await sb.from('decisions').insert(decData);
@@ -1688,15 +1745,37 @@ async function completeTask(id,remarks,decData,artifactLink,outcomeRows){
   tasks=tasks.filter(t=>t.id!==id);closeCompleteModal();renderTodayTasks();renderAllTasks();renderFocusSlots();
 }
 
+// ── DISPOSITION (not "done by me") ───────────────────
+function openDispModal(id){
+  const t=tasks.find(t=>t.id===id);
+  document.getElementById('disp-id').value=id;
+  document.getElementById('disp-task-title').textContent=t?t.title:'';
+  document.getElementById('disp-modal').classList.add('open');
+}
+function closeDispModal(){document.getElementById('disp-modal').classList.remove('open');}
+function dispDelegate(){const id=document.getElementById('disp-id').value;closeDispModal();openDelegateModal(id);}
+async function dispSet(status){
+  const id=document.getElementById('disp-id').value;if(!id)return;
+  const now=new Date().toISOString();
+  const{error}=await sb.from('tasks').update({status,updated_at:now}).eq('id',id);
+  if(error){alert('Failed: '+error.message);return;}
+  tasks=tasks.filter(t=>t.id!==id);
+  focusSessions=focusSessions.filter(s=>s.task_id!==id);
+  closeDispModal();renderTodayTasks();renderAllTasks();renderFocusSlots();
+}
+
 // ── DELEGATE ─────────────────────────────────────────
 function openDelegateModal(id){document.getElementById('d-id').value=id;document.getElementById('d-context').value='';document.getElementById('delegate-modal').classList.add('open');}
 function closeDelegateModal(){document.getElementById('delegate-modal').classList.remove('open');}
 async function approveDelegation(){
   const id=document.getElementById('d-id').value;const ctx=document.getElementById('d-context').value;const t=tasks.find(t=>t.id===id);
-  await sb.from('tasks').update({status:'delegated',delegation_context:ctx,delegation_channel:document.getElementById('d-channel').value,updated_at:new Date().toISOString()}).eq('id',id);
-  await navigator.clipboard.writeText(`[Delegating: ${t?.title||id}]\n\n${ctx}`).catch(()=>{});
-  alert('Message copied!');const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i].status='delegated';
-  closeDelegateModal();renderAllTasks();renderTodayTasks();
+  const to=document.getElementById('d-to').value||null;
+  await sb.from('tasks').update({status:'delegated',assigned_to:to||(t&&t.assigned_to)||null,delegation_context:ctx,delegation_channel:document.getElementById('d-channel').value,updated_at:new Date().toISOString()}).eq('id',id);
+  await navigator.clipboard.writeText(`[Delegating: ${t?.title||id}]${to?' → '+to:''}\n\n${ctx}`).catch(()=>{});
+  alert('Delegated. Hand-off message copied to clipboard.\n(Teams auto-send is the next build.)');
+  tasks=tasks.filter(x=>x.id!==id);
+  focusSessions=focusSessions.filter(s=>s.task_id!==id);
+  closeDelegateModal();renderAllTasks();renderTodayTasks();renderFocusSlots();
 }
 
 // ── SETTINGS ─────────────────────────────────────────
@@ -1882,6 +1961,28 @@ function setSatisfaction(val){
     const el=document.getElementById(id);
     if(el) el.classList.toggle('sat-active',i+1===val);
   });
+}
+function setImpact(val){
+  document.getElementById('complete-impact').value=val;
+  ['low','medium','high'].forEach(k=>{
+    const el=document.getElementById('impact-'+k);
+    if(el) el.classList.toggle('sat-active',k===val);
+  });
+}
+function onCompleteWorkstreamChange(){
+  populateOutcomeMetricsInModal(document.getElementById('complete-workstream').value);
+}
+async function addNewMetric(){
+  const ws=document.getElementById('complete-workstream').value;
+  if(!ws){alert('Pick a workstream first — metrics belong to a workstream.');return;}
+  const name=prompt(`New metric for "${ws}":\n(e.g. "Customers live", "Validation accuracy %", "Manual hours saved")`);
+  if(!name||!name.trim())return;
+  const unit=prompt('Unit? (optional — e.g. %, AUD, count). Leave blank to skip.')||null;
+  const row={workstream:ws,metric_name:name.trim(),unit:unit&&unit.trim()?unit.trim():null,active:true,period:TODAY};
+  const{data,error}=await sb.from('outcome_metrics').insert(row).select().single();
+  if(error){alert('Could not add metric: '+error.message);return;}
+  outcomeMetrics.push(data);
+  populateOutcomeMetricsInModal(ws);
 }
 
 // ── DEEP WORK TOGGLE ──────────────────────────────────
