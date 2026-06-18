@@ -305,7 +305,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.79 · 2026-06-17</div>
+  <div class="app-version">v1.80 · 2026-06-18</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -618,6 +618,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="modal-title" id="add-modal-title">Add task</div>
   <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="f-title" placeholder="What needs to be done?"></div>
   <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="f-desc" rows="2"></textarea></div>
+  <div class="form-group"><label class="form-label">Why <span style="font-weight:400;color:var(--muted)">— why does this matter / why was it asked</span></label><textarea class="form-textarea" id="f-why" rows="2" placeholder="Context the owner needs to understand the ask"></textarea></div>
+  <div class="form-group"><label class="form-label">Action required <span style="font-weight:400;color:var(--muted)">— what exactly needs to be done</span></label><textarea class="form-textarea" id="f-action" rows="2" placeholder="The concrete next step expected from whoever owns this"></textarea></div>
   <div class="form-row">
     <div class="form-group"><label class="form-label">Priority</label><select class="form-select" id="f-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select></div>
     <div class="form-group"><label class="form-label">Action type</label><select class="form-select" id="f-type"><option value="">—</option><option value="reply">Reply</option><option value="review">Review</option><option value="create">Create</option><option value="setup">Setup</option><option value="call">Call</option><option value="decide">Decide</option><option value="investigate">Investigate</option><option value="other">Other</option></select></div>
@@ -729,15 +731,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="modal-overlay" id="delegate-modal">
 <div class="modal">
   <div class="modal-title">Delegate task</div>
-  <div class="form-group"><label class="form-label">Context</label><textarea class="form-textarea" id="d-context" rows="4"></textarea></div>
   <div class="form-row">
-    <div class="form-group"><label class="form-label">Channel</label><select class="form-select" id="d-channel"><option value="cowork">Claude Cowork</option><option value="teams">Teams</option></select></div>
-    <div class="form-group"><label class="form-label">To</label><select class="form-select" id="d-to"><option value="">— select —</option></select></div>
+    <div class="form-group"><label class="form-label">Channel</label><select class="form-select" id="d-channel" onchange="onDelegateChannelChange()"><option value="cowork">Claude Cowork</option><option value="teams">Teams</option></select></div>
+    <div class="form-group"><label class="form-label">To <span style="font-weight:400;color:var(--muted)">— type any colleague's name</span></label><input class="form-input" id="d-to" list="d-to-list" placeholder="Start typing a name…" autocomplete="off"><datalist id="d-to-list"></datalist></div>
   </div>
+  <div class="form-group"><label class="form-label">Message <span style="font-weight:400;color:var(--muted)">— auto-composed from the task, edit as needed</span></label><textarea class="form-textarea" id="d-context" rows="11"></textarea></div>
+  <div id="d-send-note" style="font-size:11px;color:var(--muted);margin-top:-4px"></div>
   <input type="hidden" id="d-id">
   <div class="modal-actions">
     <button class="btn" onclick="closeDelegateModal()">Cancel</button>
-    <button class="btn btn-primary" onclick="approveDelegation()">Approve & copy</button>
+    <button class="btn btn-primary" id="d-approve-btn" onclick="approveDelegation()">Approve &amp; copy</button>
   </div>
 </div>
 </div>
@@ -751,7 +754,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <button class="btn" style="justify-content:flex-start;text-align:left;height:auto;padding:10px 12px" onclick="dispDelegate()"><div><strong>👤 Delegated to someone</strong><div style="font-size:11px;color:var(--muted)">Owned by another person now. Tracked, but not your completion — no done button.</div></div></button>
     <button class="btn" style="justify-content:flex-start;text-align:left;height:auto;padding:10px 12px" onclick="dispSet('noise')"><div><strong>🔇 Noise — not actionable</strong><div style="font-size:11px;color:var(--muted)">Real message, but no real work for anyone (FYI, ack, "not my problem").</div></div></button>
     <button class="btn" style="justify-content:flex-start;text-align:left;height:auto;padding:10px 12px" onclick="dispSet('intake_error')"><div><strong>⚠️ Intake error</strong><div style="font-size:11px;color:var(--muted)">PM-OS shouldn't have created this. Kept as a signal of intake misfires.</div></div></button>
-    <button class="btn btn-danger" style="justify-content:flex-start;text-align:left;height:auto;padding:10px 12px" onclick="dispSet('deleted')"><div><strong>🗑 Delete</strong><div style="font-size:11px;color:#fff;opacity:.85">Duplicate / junk. Use Intake error instead if you want to keep the signal.</div></div></button>
+    <button class="btn btn-danger" style="justify-content:flex-start;text-align:left;height:auto;padding:10px 12px" onclick="dispSet('deleted')"><div><strong>🗑 Delete</strong><div style="font-size:11px;color:#B91C1C;opacity:.9">Duplicate / junk. Use Intake error instead if you want to keep the signal.</div></div></button>
   </div>
   <input type="hidden" id="disp-id">
   <div class="modal-actions"><button class="btn" onclick="closeDispModal()">Cancel</button></div>
@@ -1033,7 +1036,8 @@ function populateFilters(){
   const addNew='<option value="__add_new__">＋ Add new…</option>';
   document.getElementById('f-customer').innerHTML='<option value="">—</option>'+cO+addNew;
   document.getElementById('f-assignee').innerHTML=tO;
-  document.getElementById('d-to').innerHTML='<option value="">— select —</option>'+tO;
+  const dNames=[...new Set([...teamMembers.map(m=>m.name),...tasks.filter(t=>t.requester).map(t=>t.requester)])].filter(Boolean).sort();
+  document.getElementById('d-to-list').innerHTML=dNames.map(n=>`<option value="${esc(n)}"></option>`).join('');
   const rmO=teamMembers.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('');
   document.getElementById('f-requester').innerHTML='<option value="">—</option>'+rmO+addNew;
   document.getElementById('f-workstream').innerHTML='<option value="">—</option>'+wO+addNew;
@@ -1606,7 +1610,7 @@ function closeMorningPlan(){document.getElementById('mp-modal').classList.remove
 // ── ADD/EDIT TASK ─────────────────────────────────────
 function openAddTask(){
   document.getElementById('add-modal-title').textContent='Add task';document.getElementById('f-id').value='';document.getElementById('delete-btn').classList.add('hidden');
-  ['f-title','f-desc','f-requester','f-workstream'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});populateSources('');
+  ['f-title','f-desc','f-why','f-action','f-requester','f-workstream'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});populateSources('');
   document.getElementById('f-priority').value='medium';document.getElementById('f-type').value='';document.getElementById('f-customer').value='';document.getElementById('f-deep-work').checked=false;document.getElementById('deep-toggle').className='deep-toggle';document.getElementById('deep-toggle-icon').textContent='⬜';
   document.getElementById('f-assignee').value='Me';document.getElementById('f-due').value='';document.getElementById('f-awaiting').value='';
   document.getElementById('add-modal').classList.add('open');
@@ -1615,6 +1619,7 @@ function openEditTask(id){
   const t=tasks.find(t=>t.id===id);if(!t)return;
   document.getElementById('add-modal-title').textContent='Edit task';document.getElementById('f-id').value=t.id;document.getElementById('delete-btn').classList.remove('hidden');
   document.getElementById('f-title').value=t.title||'';document.getElementById('f-desc').value=t.description||'';
+  document.getElementById('f-why').value=t.why||'';document.getElementById('f-action').value=t.action_required||'';
   document.getElementById('f-priority').value=t.priority||'medium';document.getElementById('f-type').value=t.type||'';
   document.getElementById('f-customer').value=t.customer||'';document.getElementById('f-assignee').value=t.assigned_to||'Me';
   document.getElementById('f-due').value=t.due_date||'';document.getElementById('f-awaiting').value=t.awaiting_since||'';
@@ -1626,7 +1631,7 @@ function closeAddModal(){document.getElementById('add-modal').classList.remove('
 async function saveTask(){
   const id=document.getElementById('f-id').value;const title=document.getElementById('f-title').value.trim();
   if(!title){alert('Title is required.');return;}
-  const data={title,description:document.getElementById('f-desc').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
+  const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
   if(id){await sb.from('tasks').update(data).eq('id',id);const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};}
   else{data.status='open';data.created_at=new Date().toISOString();const{data:nt}=await sb.from('tasks').insert(data).select().single();if(nt)tasks.unshift(nt);}
   closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();
@@ -1765,14 +1770,91 @@ async function dispSet(status){
 }
 
 // ── DELEGATE ─────────────────────────────────────────
-function openDelegateModal(id){document.getElementById('d-id').value=id;document.getElementById('d-context').value='';document.getElementById('delegate-modal').classList.add('open');}
+function buildDelegationMessage(t){
+  if(!t)return'';
+  const fmtDate=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Not set';
+  const links=(t.source||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const ch=channel(t.source);const chLabel=ch==='teams'?'Teams':ch==='outlook'?'Email':ch==='document'?'Document':'';
+  const logged=t.created_at?new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
+  let srcLine='—';
+  if(links.length)srcLine=(chLabel?chLabel+' — ':'')+links[0]+(logged?` (logged ${logged})`:'');
+  else if(chLabel)srcLine=chLabel+(logged?` (logged ${logged})`:'');
+  let m='Hi,\n\nHanding this over to you — full context below:\n\n';
+  m+=`• Task: ${t.title||'—'}\n`;
+  if(t.description)m+=`• Details: ${t.description}\n`;
+  m+=`• Why it matters: ${t.why||'—'}\n`;
+  m+=`• Action required: ${t.action_required||'—'}\n`;
+  m+=`• Requested by: ${t.requester||'—'}\n`;
+  m+=`• ETA: ${fmtDate(t.due_date)}\n`;
+  m+=`• Source: ${srcLine}\n`;
+  links.slice(1).forEach(l=>{m+=`         ${l}\n`;});
+  m+='\nShout if you need more detail. Thanks!';
+  return m;
+}
+function onDelegateChannelChange(){
+  const ch=document.getElementById('d-channel').value;
+  const btn=document.getElementById('d-approve-btn');const note=document.getElementById('d-send-note');
+  if(ch==='teams'){btn.textContent='Send via Teams';note.textContent='Sends this message to the named person on Teams. If Teams isn’t connected yet, it copies to clipboard instead.';}
+  else{btn.textContent='Approve & copy';note.textContent='Copies the hand-off message to your clipboard.';}
+}
+function openDelegateModal(id){
+  const t=tasks.find(t=>t.id===id);
+  document.getElementById('d-id').value=id;
+  document.getElementById('d-to').value=(t&&t.assigned_to&&t.assigned_to!=='Me')?t.assigned_to:'';
+  document.getElementById('d-channel').value='cowork';
+  document.getElementById('d-context').value=buildDelegationMessage(t);
+  onDelegateChannelChange();
+  document.getElementById('delegate-modal').classList.add('open');
+}
 function closeDelegateModal(){document.getElementById('delegate-modal').classList.remove('open');}
+// Calls Microsoft Graph through Facilio Run's same-origin credential proxy (/api/proxy, secret 'microsoft').
+// Only works when the app is served from Facilio Run with a stored Microsoft OAuth credential; elsewhere it throws and we fall back to clipboard.
+async function gproxy(url,method,body,headers){
+  const r=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:'microsoft',url,method:method||'GET',headers:headers||{},body:body||undefined})});
+  let data=null;try{data=await r.json();}catch(e){}
+  return{status:r.status,ok:r.ok,data};
+}
+async function sendTeamsMessage(name,message){
+  try{
+    const q=encodeURIComponent(`"displayName:${name}"`);
+    const u=await gproxy(`https://graph.microsoft.com/v1.0/users?$search=${q}&$select=id,displayName,mail&$top=5`,'GET',null,{ConsistencyLevel:'eventual'});
+    if(!u.ok)return{ok:false,error:'directory lookup failed ('+u.status+')'};
+    const users=(u.data&&u.data.value)||[];
+    if(!users.length)return{ok:false,error:'no colleague named "'+name+'" found'};
+    const them=users.find(x=>(x.displayName||'').toLowerCase()===name.toLowerCase())||users[0];
+    const me=await gproxy('https://graph.microsoft.com/v1.0/me?$select=id','GET');
+    if(!me.ok||!me.data||!me.data.id)return{ok:false,error:'could not resolve your account'};
+    const chatBody=JSON.stringify({chatType:'oneOnOne',members:[
+      {'@odata.type':'#microsoft.graph.aadUserConversationMember',roles:['owner'],'user@odata.bind':`https://graph.microsoft.com/v1.0/users('${me.data.id}')`},
+      {'@odata.type':'#microsoft.graph.aadUserConversationMember',roles:['owner'],'user@odata.bind':`https://graph.microsoft.com/v1.0/users('${them.id}')`}
+    ]});
+    const c=await gproxy('https://graph.microsoft.com/v1.0/chats','POST',chatBody,{'Content-Type':'application/json'});
+    if(!c.ok||!c.data||!c.data.id)return{ok:false,error:'could not open chat ('+c.status+')'};
+    const pm=await gproxy(`https://graph.microsoft.com/v1.0/chats/${c.data.id}/messages`,'POST',JSON.stringify({body:{contentType:'text',content:message}}),{'Content-Type':'application/json'});
+    if(!pm.ok)return{ok:false,error:'message send failed ('+pm.status+')'};
+    return{ok:true,to:them.displayName||name};
+  }catch(e){return{ok:false,error:'Teams not connected here ('+(e.message||'proxy unavailable')+')'};}
+}
 async function approveDelegation(){
   const id=document.getElementById('d-id').value;const ctx=document.getElementById('d-context').value;const t=tasks.find(t=>t.id===id);
-  const to=document.getElementById('d-to').value||null;
-  await sb.from('tasks').update({status:'delegated',assigned_to:to||(t&&t.assigned_to)||null,delegation_context:ctx,delegation_channel:document.getElementById('d-channel').value,updated_at:new Date().toISOString()}).eq('id',id);
-  await navigator.clipboard.writeText(`[Delegating: ${t?.title||id}]${to?' → '+to:''}\n\n${ctx}`).catch(()=>{});
-  alert('Delegated. Hand-off message copied to clipboard.\n(Teams auto-send is the next build.)');
+  const to=document.getElementById('d-to').value.trim()||null;
+  const ch=document.getElementById('d-channel').value;const btn=document.getElementById('d-approve-btn');
+  let sentVia='clipboard';
+  if(ch==='teams'){
+    if(!to){alert('Enter the person’s name to send on Teams.');return;}
+    const orig=btn.textContent;btn.disabled=true;btn.textContent='Sending…';
+    const res=await sendTeamsMessage(to,ctx);
+    btn.disabled=false;btn.textContent=orig;
+    if(res.ok){sentVia='teams';}
+    else{
+      await navigator.clipboard.writeText(`[Delegating: ${t?.title||id}] → ${to}\n\n${ctx}`).catch(()=>{});
+      alert('Couldn’t auto-send on Teams: '+res.error+'.\nThe message was copied to your clipboard — paste it to '+to+'.');
+    }
+  }else{
+    await navigator.clipboard.writeText(`[Delegating: ${t?.title||id}]${to?' → '+to:''}\n\n${ctx}`).catch(()=>{});
+  }
+  await sb.from('tasks').update({status:'delegated',assigned_to:to||(t&&t.assigned_to)||null,delegation_context:ctx,delegation_channel:ch,updated_at:new Date().toISOString()}).eq('id',id);
+  if(ch==='teams'&&sentVia==='teams')alert('Sent to '+to+' on Teams ✓');
   tasks=tasks.filter(x=>x.id!==id);
   focusSessions=focusSessions.filter(s=>s.task_id!==id);
   closeDelegateModal();renderAllTasks();renderTodayTasks();renderFocusSlots();
