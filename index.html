@@ -305,13 +305,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.80 · 2026-06-18</div>
+  <div class="app-version">v1.9 · 2026-06-26</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
 <nav class="tab-nav">
-  <button class="tab-btn active" data-tab="today">Today</button>
-  <button class="tab-btn" data-tab="all">Open tasks</button>
+  <button class="tab-btn active" data-tab="today">Tasks</button>
+  <button class="tab-btn" data-tab="delegated">Delegated</button>
   <button class="tab-btn" data-tab="completed">Completed</button>
   <button class="tab-btn" data-tab="decisions">Decisions</button>
   <button class="tab-btn" data-tab="analytics">Analytics</button>
@@ -356,14 +356,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </div>
   <div class="task-section">
     <div class="ts-header">
-      <span class="ts-title">Today's tasks <span id="today-count" style="font-size:12px;font-weight:400;color:var(--muted)"></span></span>
+      <span class="ts-title">Tasks <span id="today-count" style="font-size:12px;font-weight:400;color:var(--muted)"></span></span>
       <button class="btn btn-primary btn-sm" onclick="openAddTask()">+ Add task</button>
     </div>
     <div class="ts-filters">
+      <select class="f-select" id="t-show" onchange="renderTodayTasks()"><option value="">All open</option><option value="today">📌 Today</option><option value="delayed">⚠ Delayed</option></select>
       <select class="f-select" id="t-pri" onchange="renderTodayTasks()"><option value="">Any priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
       <select class="f-select" id="t-type" onchange="renderTodayTasks()"><option value="">Any action</option><option value="reply">Reply</option><option value="review">Review</option><option value="create">Create</option><option value="setup">Setup</option><option value="call">Call</option><option value="decide">Decide</option><option value="investigate">Investigate</option><option value="other">Other</option></select>
+      <select class="f-select" id="t-chan" onchange="renderTodayTasks()"><option value="">Any channel</option><option value="teams">Teams</option><option value="outlook">Outlook</option><option value="document">Document</option><option value="other">Other</option><option value="none">No link</option></select>
       <select class="f-select" id="t-cust" onchange="renderTodayTasks()"><option value="">Any customer</option></select>
       <select class="f-select" id="t-ws" onchange="renderTodayTasks()"><option value="">Any workstream</option></select>
+      <select class="f-select" id="t-assignee" onchange="renderTodayTasks()"><option value="">Any assignee</option></select>
+      <select class="f-select" id="t-req" onchange="renderTodayTasks()"><option value="">Any requester</option></select>
       <input class="f-search" id="t-search" placeholder="Search…" oninput="renderTodayTasks()">
     </div>
     <ul class="task-list" id="today-list"><li class="task-loading">Loading…</li></ul>
@@ -371,26 +375,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 </section>
 
-<!-- ALL TASKS -->
-<section class="tab-section" id="tab-all">
+<!-- DELEGATED -->
+<section class="tab-section" id="tab-delegated">
 <div class="main-content">
   <div class="task-section">
     <div class="ts-header">
-      <span class="ts-title">Open tasks <span id="all-count" style="font-size:12px;font-weight:400;color:var(--muted)"></span></span>
-      <button class="btn btn-primary btn-sm" onclick="openAddTask()">+ Add task</button>
+      <span class="ts-title">Delegated <span id="del-count" style="font-size:12px;font-weight:400;color:var(--muted)"></span></span>
+      <span style="font-size:12px;color:var(--muted)">Tasks you've handed to someone. Re-delegate or pull back to yourself.</span>
     </div>
     <div class="ts-filters">
-      <select class="f-select" id="a-status" onchange="renderAllTasks()"><option value="">Any status</option><option value="open">Open</option><option value="in_progress">In progress</option><option value="delegated">Delegated</option></select>
-      <select class="f-select" id="a-pri" onchange="renderAllTasks()"><option value="">Any priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
-      <select class="f-select" id="a-type" onchange="renderAllTasks()"><option value="">Any action</option><option value="reply">Reply</option><option value="review">Review</option><option value="create">Create</option><option value="setup">Setup</option><option value="call">Call</option><option value="decide">Decide</option><option value="investigate">Investigate</option><option value="other">Other</option></select>
-      <select class="f-select" id="a-chan" onchange="renderAllTasks()"><option value="">Any channel</option><option value="teams">Teams</option><option value="outlook">Outlook</option><option value="document">Document</option><option value="other">Other</option><option value="none">No link</option></select>
-      <select class="f-select" id="a-cust" onchange="renderAllTasks()"><option value="">Any customer</option></select>
-      <select class="f-select" id="a-ws" onchange="renderAllTasks()"><option value="">Any workstream</option></select>
-      <select class="f-select" id="a-assignee" onchange="renderAllTasks()"><option value="">Any assignee</option></select>
-      <select class="f-select" id="a-req" onchange="renderAllTasks()"><option value="">Any requester</option></select>
-      <input class="f-search" id="a-search" placeholder="Search…" oninput="renderAllTasks()">
+      <select class="f-select" id="dg-assignee" onchange="renderDelegated()"><option value="">Any person</option></select>
+      <select class="f-select" id="dg-ws" onchange="renderDelegated()"><option value="">Any workstream</option></select>
+      <select class="f-select" id="dg-cust" onchange="renderDelegated()"><option value="">Any customer</option></select>
+      <input class="f-search" id="dg-search" placeholder="Search…" oninput="renderDelegated()">
     </div>
-    <ul class="task-list" id="all-list"><li class="task-loading">Loading…</li></ul>
+    <ul class="task-list" id="delegated-list"><li class="task-loading">Loading…</li></ul>
   </div>
 </div>
 </section>
@@ -663,22 +662,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="form-group"><label class="form-label">Workstream</label><select class="form-select" id="complete-workstream" onchange="onCompleteWorkstreamChange()"></select></div>
     <div class="form-group"><label class="form-label">Customer</label><select class="form-select" id="complete-customer"></select></div>
   </div>
-  <div class="form-group">
-    <label class="form-label">Outcome — what changed / result <span style="color:var(--danger)">*</span></label>
-    <textarea class="form-textarea" id="complete-remarks" rows="3" placeholder="What is different now? e.g. 'Customer signed off BRD', 'Bug fixed, validator live for Charter Hall', 'Decided WhatsApp-only — comms sent'. Not just 'done'."></textarea>
+  <!-- UNIFIED OUTCOME SECTION (all task types) -->
+  <div class="dec-capture" id="outcome-metric-section">
+    <div class="dec-capture-lbl">📊 Outcome — what changed <span style="color:var(--danger)">*</span> <span style="font-weight:400;color:var(--muted)">— note the result; link a workstream metric only if one moved</span></div>
+    <div id="outcome-rows-list"></div>
+    <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+      <button type="button" class="btn btn-sm" onclick="addOutcomeRow()">+ Add outcome</button>
+      <button type="button" class="btn btn-sm" onclick="addNewMetric()" title="Create a new metric for this workstream">+ New metric for this workstream</button>
+    </div>
   </div>
-  <!-- CREATE: artifact links -->
-  <div class="dec-capture hidden" id="create-capture-section">
-    <div class="dec-capture-lbl">🔗 Artifacts created</div>
+  <!-- ARTIFACTS (all task types, optional) -->
+  <div class="dec-capture" id="create-capture-section" style="margin-top:14px">
+    <div class="dec-capture-lbl">🔗 Artifacts <span style="font-weight:400;color:var(--muted)">(optional — docs, sheets, PRDs, recordings…)</span></div>
     <div id="artifact-list"></div>
     <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="addArtifactRow()">+ Add artifact</button>
   </div>
   <!-- DECIDE: decision capture -->
-  <div class="dec-capture hidden" id="dec-capture-section">
+  <div class="dec-capture hidden" id="dec-capture-section" style="margin-top:14px">
     <div class="dec-capture-lbl">📋 Log this decision</div>
     <div class="form-group"><label class="form-label">What was decided *</label><textarea class="form-textarea" id="dc-decision" rows="2" placeholder="State the decision clearly…"></textarea></div>
     <div class="form-group"><label class="form-label">Why / rationale</label><textarea class="form-textarea" id="dc-why" rows="2" placeholder="Key reasoning, trade-offs…"></textarea></div>
-    <div class="form-group"><label class="form-label">Outcome / next action</label><textarea class="form-textarea" id="dc-outcome" rows="2" placeholder="What happens next…"></textarea></div>
+    <div class="form-group"><label class="form-label">Next action (after this decision)</label><textarea class="form-textarea" id="dc-outcome" rows="2" placeholder="What happens next…"></textarea></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="dc-status"><option value="open">Open</option><option value="in_progress">In progress</option><option value="done">Done</option><option value="reversed">Reversed</option></select></div>
       <div class="form-group"><label class="form-label">Date of decision</label><input class="form-input" id="dc-date" type="date"></div>
@@ -687,15 +691,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="form-group">
       <label class="form-label">Participants</label>
       <div id="dc-participants" class="chip-container"></div>
-    </div>
-  </div>
-  <!-- OUTCOME METRIC SECTION -->
-  <div class="dec-capture" id="outcome-metric-section" style="margin-top:14px">
-    <div class="dec-capture-lbl">📊 Move a metric <span style="font-weight:400;color:var(--muted)">(optional — link this to a workstream metric)</span></div>
-    <div id="outcome-rows-list"></div>
-    <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
-      <button type="button" class="btn btn-sm" onclick="addOutcomeRow()">+ Add outcome</button>
-      <button type="button" class="btn btn-sm" onclick="addNewMetric()" title="Create a new metric for this workstream">+ New metric for this workstream</button>
     </div>
   </div>
   <!-- IMPACT PICKER (primary quality axis) -->
@@ -1029,10 +1024,10 @@ function populateFilters(){
   const tO=['Me',...teamMembers.map(m=>m.name)].map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
   const reqs=[...new Set(tasks.filter(t=>t.requester).map(t=>t.requester))].sort();
   const rO=reqs.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
-  ['t-cust','a-cust','c-cust','df-cust'].forEach(id=>setOpts(id,'Any customer',cO));
-  ['t-ws','a-ws','c-ws','df-ws'].forEach(id=>setOpts(id,'Any workstream',wO));
-  setOpts('a-assignee','Any assignee',tO);
-  setOpts('a-req','Any requester',rO);setOpts('c-req','Any requester',rO);
+  ['t-cust','dg-cust','c-cust','df-cust'].forEach(id=>setOpts(id,'Any customer',cO));
+  ['t-ws','dg-ws','c-ws','df-ws'].forEach(id=>setOpts(id,'Any workstream',wO));
+  setOpts('t-assignee','Any assignee',tO);
+  setOpts('t-req','Any requester',rO);setOpts('c-req','Any requester',rO);
   const addNew='<option value="__add_new__">＋ Add new…</option>';
   document.getElementById('f-customer').innerHTML='<option value="">—</option>'+cO+addNew;
   document.getElementById('f-assignee').innerHTML=tO;
@@ -1095,21 +1090,30 @@ function renderFocusSlots(){
     </div>`;
   }).join('');
 }
+function isTodayTagged(t){return t.today_date===TODAY;}
+function isDelayed(t){return t.today_date&&t.today_date<TODAY;}
 function renderTodayTasks(){
-  const pri=v('t-pri'),type=v('t-type'),cust=v('t-cust'),ws=v('t-ws'),q=v('t-search').toLowerCase();
+  const show=v('t-show'),pri=v('t-pri'),type=v('t-type'),chan=v('t-chan'),cust=v('t-cust'),ws=v('t-ws'),assignee=v('t-assignee'),req=v('t-req'),q=v('t-search').toLowerCase();
   const fIds=new Set(focusSessions.map(s=>s.task_id));
   let fil=tasks.filter(t=>{
     if(t.status==='done')return false;
     if(fIds.has(t.id))return false; // focus tasks shown above — not duplicated here
+    if(show==='today'&&!isTodayTagged(t))return false;
+    if(show==='delayed'&&!isDelayed(t))return false;
     if(pri&&t.priority!==pri)return false;
     if(type&&t.type!==type)return false;
     if(cust&&t.customer!==cust)return false;
     if(ws&&!(t.workstream||'').includes(ws))return false;
-    if(q&&!(t.title||'').toLowerCase().includes(q)&&!(t.requester||'').toLowerCase().includes(q))return false;
+    if(assignee&&t.assigned_to!==assignee)return false;
+    if(req&&t.requester!==req)return false;
+    if(chan){const ch=channel(t.source);if(chan==='none'&&ch!==null)return false;if(chan!=='none'&&ch!==chan)return false;}
+    if(q&&!(t.title||'').toLowerCase().includes(q)&&!(t.requester||'').toLowerCase().includes(q)&&!(t.description||'').toLowerCase().includes(q))return false;
     return true;
   });
   const pO={high:0,medium:1,low:2};
-  const sf=(a,b)=>{const af=fIds.has(a.id)?0:1,bf=fIds.has(b.id)?0:1;if(af!==bf)return af-bf;return(pO[a.priority]??3)-(pO[b.priority]??3);};
+  // delayed first, then today-tagged, then by priority
+  const rank=t=>isDelayed(t)?0:isTodayTagged(t)?1:2;
+  const sf=(a,b)=>{const r=rank(a)-rank(b);if(r)return r;return(pO[a.priority]??3)-(pO[b.priority]??3);};
   const deep=[...fil.filter(t=>DEEP_TYPES.has(t.type))].sort(sf);
   const react=[...fil.filter(t=>!DEEP_TYPES.has(t.type))].sort(sf);
   document.getElementById('today-count').textContent=`(${fil.length})`;
@@ -1121,25 +1125,66 @@ function renderTodayTasks(){
   list.innerHTML=html;
 }
 
-// ── ALL TASKS ─────────────────────────────────────────
-function renderAllTasks(){
-  const status=v('a-status'),pri=v('a-pri'),type=v('a-type'),chan=v('a-chan'),cust=v('a-cust'),ws=v('a-ws'),assignee=v('a-assignee'),req=v('a-req'),q=v('a-search').toLowerCase();
-  let fil=tasks.filter(t=>{
-    if(t.status==='done')return false;
-    if(status&&t.status!==status)return false;
-    if(pri&&t.priority!==pri)return false;
-    if(type&&t.type!==type)return false;
-    if(cust&&t.customer!==cust)return false;
+// ── ALL TASKS (merged into the single Tasks tab; kept as alias for existing call sites) ──
+function renderAllTasks(){renderTodayTasks();}
+
+// ── DELEGATED ─────────────────────────────────────────
+let delegatedTasks=[];
+function findTask(id){return tasks.find(t=>t.id===id)||delegatedTasks.find(t=>t.id===id);}
+async function renderDelegated(){
+  const list=document.getElementById('delegated-list');
+  const{data}=await sb.from('tasks').select('*').eq('status','delegated').order('updated_at',{ascending:false});
+  delegatedTasks=data||[];
+  const people=[...new Set(delegatedTasks.map(t=>t.assigned_to).filter(Boolean))].sort();
+  const cur=v('dg-assignee');
+  setOpts('dg-assignee','Any person',people.map(p=>`<option value="${esc(p)}"${p===cur?' selected':''}>${esc(p)}</option>`).join(''));
+  const asg=v('dg-assignee'),ws=v('dg-ws'),cust=v('dg-cust'),q=v('dg-search').toLowerCase();
+  let fil=delegatedTasks.filter(t=>{
+    if(asg&&t.assigned_to!==asg)return false;
     if(ws&&!(t.workstream||'').includes(ws))return false;
-    if(assignee&&t.assigned_to!==assignee)return false;
-    if(req&&t.requester!==req)return false;
-    if(chan){const ch=channel(t.source);if(chan==='none'&&ch!==null)return false;if(chan!=='none'&&ch!==chan)return false;}
-    if(q&&!(t.title||'').toLowerCase().includes(q)&&!(t.requester||'').toLowerCase().includes(q)&&!(t.description||'').toLowerCase().includes(q))return false;
+    if(cust&&t.customer!==cust)return false;
+    if(q&&!(t.title||'').toLowerCase().includes(q)&&!(t.assigned_to||'').toLowerCase().includes(q))return false;
     return true;
   });
-  const pO={high:0,medium:1,low:2};fil.sort((a,b)=>(pO[a.priority]??3)-(pO[b.priority]??3));
-  document.getElementById('all-count').textContent=`(${fil.length})`;
-  document.getElementById('all-list').innerHTML=fil.length?fil.map(t=>taskCard(t,{showFocus:true})).join(''):'<li class="task-empty">No tasks matching filters.</li>';
+  document.getElementById('del-count').textContent=`(${fil.length})`;
+  list.innerHTML=fil.length?fil.map(t=>delegatedCard(t)).join(''):'<li class="task-empty">Nothing delegated.</li>';
+}
+function delegatedCard(t){
+  const links=(t.source||'').split('\n').filter(Boolean).map((s,i,arr)=>`<a href="${normalizeSource(s)}" target="_blank" class="task-link">Source${arr.length>1?' '+(i+1):''} ↗</a>`).join('');
+  const chLabel=t.delegation_channel==='teams'?'🔷 Teams':t.delegation_channel==='cowork'?'🤖 Cowork':'';
+  return`<li class="task-card">
+    <div style="width:18px;flex-shrink:0;color:var(--primary);margin-top:2px">→</div>
+    <div class="task-body">
+      <div class="task-title-row"><span class="task-title">${esc(t.title)}</span>
+        <div class="task-badges">
+          <span class="badge" style="background:#EEF2FF;color:#4338CA;font-weight:600">→ ${esc(t.assigned_to||'—')}</span>
+          ${t.priority?`<span class="badge b-${t.priority}">${cap(t.priority)}</span>`:''}
+          ${t.type?`<span class="badge b-${cleanType(t.type)}">${cap(t.type)}</span>`:''}
+          ${t.customer?`<span class="badge b-customer">${esc(t.customer)}</span>`:''}
+          ${(t.workstream||'').split(',').filter(Boolean).slice(0,2).map(w=>`<span class="badge b-ws">${esc(w.trim())}</span>`).join('')}
+          ${chLabel?`<span class="badge b-channel">${chLabel}</span>`:''}
+        </div>
+      </div>
+      <div class="task-meta">
+        ${t.requester?`<span>from ${esc(t.requester)}</span>`:''}
+        ${links}
+        ${t.updated_at?`<span>delegated ${new Date(t.updated_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>`:''}
+      </div>
+    </div>
+    <div class="task-actions" style="align-items:center">
+      <button class="btn btn-sm" onclick="openDelegateModal('${t.id}')" title="Re-delegate to someone else">↪ Re-delegate</button>
+      <button class="btn btn-sm" onclick="reclaimTask('${t.id}')" title="Pull this back to your own list">↩ Take back</button>
+    </div>
+  </li>`;
+}
+async function reclaimTask(id){
+  const now=new Date().toISOString();
+  const{error}=await sb.from('tasks').update({status:'open',assigned_to:'Me',updated_at:now}).eq('id',id);
+  if(error){alert('Could not take back: '+error.message);return;}
+  const{data}=await sb.from('tasks').select('*').eq('id',id).single();
+  if(data){tasks=[data,...tasks.filter(t=>t.id!==id)];}
+  delegatedTasks=delegatedTasks.filter(t=>t.id!==id);
+  renderDelegated();renderTodayTasks();renderFocusSlots();populateFilters();
 }
 
 // ── COMPLETED ─────────────────────────────────────────
@@ -1491,11 +1536,13 @@ function taskCard(t,opts={}){
   let aw='';if(t.awaiting_since){const d=daysSince(t.awaiting_since);aw=`<span class="badge ${d>=3?'b-waiting-hot':'b-waiting'}">⏳ Waiting ${d}d</span>`;}
   const db=dc>0?`<span class="badge ${hot?'b-deferred-hot':'b-deferred'}" title="Deferred ${dc}×">⏩ ×${dc}</span>`:'';
   const focusBtn=showFocus&&!isCompleted?`<button class="btn btn-sm btn-icon btn-focus${isPinned?' is-focus':''}" onclick="toggleFocus('${t.id}')" title="${isPinned?'Remove focus':'Set focus'}">⭐</button>`:'';
+  const todayBtn=!isCompleted?`<button class="btn btn-sm btn-icon" onclick="toggleToday('${t.id}')" title="${isTodayTagged(t)?'Remove from today':'Mark for today'}" style="${isTodayTagged(t)?'color:#1D4ED8;border-color:#93C5FD':'color:var(--muted)'}">📌</button>`:'';
   const editBtn=`<button class="btn btn-sm btn-icon" onclick="openEditTask('${t.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
   const doneBtn=!isCompleted?`<button class="btn btn-sm btn-icon btn-success" onclick="openCompleteModal('${t.id}')">✓</button>`:'';
   const deferBtn=!isCompleted?`<button class="btn btn-sm btn-icon btn-defer" onclick="pushToTomorrow('${t.id}')" title="Push to tomorrow">⏩</button>`:'';
   const dispBtn=!isCompleted?`<button class="btn btn-sm btn-icon" onclick="openDispModal('${t.id}')" title="Not done by me — delegate / noise / intake error / delete" style="color:var(--muted)">⊘</button>`:'';
   const deepBadge=t.is_deep_work&&!isCompleted?'<span class="badge b-focus" style="background:#F5F3FF;color:#6D28D9">🧠 Deep</span>':'';
+  const todayBadge=!isCompleted&&isDelayed(t)?'<span class="badge" style="background:#FEE2E2;color:#B91C1C;font-weight:600" title="Was marked for an earlier day, still open">⚠ Delayed</span>':(!isCompleted&&isTodayTagged(t)?'<span class="badge" style="background:#DBEAFE;color:#1D4ED8;font-weight:600">📌 Today</span>':'');
   const satEmoji=isCompleted&&t.satisfaction?['','😞','😐','😊'][t.satisfaction]:'';
   const impactBadge=isCompleted&&t.impact?`<span class="badge" style="background:${t.impact==='high'?'#DCFCE7':t.impact==='medium'?'#FEF9C3':'#F1F5F9'};color:${t.impact==='high'?'#166534':t.impact==='medium'?'#854D0E':'#64748B'}" title="Impact">${cap(t.impact)} impact</span>`:'';
   const copyBtn=`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${t.id}')" title="Send to Claude" style="color:var(--muted)">⚡</button>`;
@@ -1510,6 +1557,7 @@ function taskCard(t,opts={}){
       <div class="task-title-row"><span class="task-title">${esc(t.title)}</span>
         <div class="task-badges">
           ${isPinned?'<span class="badge b-focus">⭐ Focus</span>':''}
+          ${todayBadge}
           ${deepBadge}
           ${t.priority?`<span class="badge b-${t.priority}">${cap(t.priority)}</span>`:''}
           ${t.type?`<span class="badge b-${cleanType(t.type)}">${cap(t.type)}</span>`:`<span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;cursor:pointer" onclick="openEditTask('${t.id}')">⚠ Set type</span>`}
@@ -1528,7 +1576,7 @@ function taskCard(t,opts={}){
       </div>
       ${remarks}
     </div>
-    <div class="task-actions" style="align-items:center">${satEmoji?`<span style="font-size:16px" title="Satisfaction">${satEmoji}</span>`:''}${impactBadge} ${focusBtn}${claudeBtn}${deferBtn}${dispBtn}${editBtn}${doneBtn}</div>
+    <div class="task-actions" style="align-items:center">${satEmoji?`<span style="font-size:16px" title="Satisfaction">${satEmoji}</span>`:''}${impactBadge} ${focusBtn}${todayBtn}${claudeBtn}${deferBtn}${dispBtn}${editBtn}${doneBtn}</div>
   </li>`;
 }
 
@@ -1539,6 +1587,15 @@ async function pushToTomorrow(id){
   await sb.from('tasks').update({due_date:TOMORROW,deferred_count:nc,updated_at:new Date().toISOString()}).eq('id',id);
   t.due_date=TOMORROW;t.deferred_count=nc;
   renderTodayTasks();renderAllTasks();renderFocusSlots();
+}
+
+// ── TODAY TAG ─────────────────────────────────────────
+async function toggleToday(id){
+  const t=tasks.find(t=>t.id===id);if(!t)return;
+  const nv=(t.today_date===TODAY)?null:TODAY;
+  const{error}=await sb.from('tasks').update({today_date:nv,updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){alert('Could not update Today tag: '+error.message);return;}
+  t.today_date=nv;renderTodayTasks();renderFocusSlots();
 }
 
 // ── FOCUS CRUD ────────────────────────────────────────
@@ -1665,7 +1722,7 @@ async function confirmDeleteTask(){
 // ── COMPLETE TASK ─────────────────────────────────────
 function openCompleteModal(id){
   const t=tasks.find(t=>t.id===id);if(!t)return;
-  document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-remarks').value='';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
+  document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
   document.getElementById('complete-impact').value='';['impact-low','impact-medium','impact-high'].forEach(x=>document.getElementById(x)?.classList.remove('sat-active'));
   const wsSel=document.getElementById('complete-workstream');
   wsSel.innerHTML='<option value="">— none —</option>'+workstreams.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
@@ -1675,16 +1732,15 @@ function openCompleteModal(id){
   cuSel.innerHTML='<option value="">— none —</option>'+customers.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
   if(t.customer&&!customers.some(c=>c.name===t.customer))cuSel.insertAdjacentHTML('beforeend',`<option value="${esc(t.customer)}">${esc(t.customer)}</option>`);
   cuSel.value=t.customer||'';
-  const isDecide=t.type==='decide',isCreate=t.type==='create';
+  const isDecide=t.type==='decide';
   document.getElementById('dec-capture-section').classList.toggle('hidden',!isDecide);
-  document.getElementById('create-capture-section').classList.toggle('hidden',!isCreate);
+  // Artifacts available for every task type now
+  document.getElementById('artifact-list').innerHTML='';addArtifactRow();
   if(isDecide){
     document.getElementById('dc-decision').value='';document.getElementById('dc-why').value='';document.getElementById('dc-outcome').value='';
     document.getElementById('dc-status').value='open';document.getElementById('dc-date').value=TODAY;document.getElementById('dc-owner').value='Sudharsan';
     renderChips('dc-participants',[]);
     document.getElementById('complete-modal-title').textContent='Complete & log decision';
-  } else if(isCreate){
-    document.getElementById('artifact-list').innerHTML='';addArtifactRow();document.getElementById('complete-modal-title').textContent='Complete & log artifact';
   } else document.getElementById('complete-modal-title').textContent='Mark task complete';
   populateOutcomeMetricsInModal(t.workstream);
   document.getElementById('complete-modal').classList.add('open');
@@ -1693,11 +1749,9 @@ let _outcomeModalMetrics=[];
 function populateOutcomeMetricsInModal(workstream){
   const list=document.getElementById('outcome-rows-list');if(!list)return;
   list.innerHTML='';
-  _outcomeModalMetrics=workstream
-    ?outcomeMetrics.filter(m=>m.workstream===workstream)
-    :[];
-  if(!_outcomeModalMetrics.length&&outcomeMetrics.length)_outcomeModalMetrics=outcomeMetrics; // fallback: all
-  if(_outcomeModalMetrics.length)addOutcomeRow();
+  // Only this workstream's metrics — never fall back to every workstream's metrics
+  _outcomeModalMetrics=workstream?outcomeMetrics.filter(m=>m.workstream===workstream):[];
+  addOutcomeRow(); // always one row, so a note can be captured even with no metric
 }
 function addOutcomeRow(){
   const list=document.getElementById('outcome-rows-list');if(!list)return;
@@ -1705,35 +1759,42 @@ function addOutcomeRow(){
   row.className='outcome-row';
   row.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:nowrap';
   const opts=_outcomeModalMetrics.map(m=>`<option value="${m.id}">${esc(m.metric_name)}${m.unit?' ('+m.unit+')':''}</option>`).join('');
-  row.innerHTML=`<select class="form-select outcome-metric-sel" style="flex:2;min-width:0"><option value="">— metric —</option>${opts}</select><input class="form-input outcome-val-input" type="number" step="any" placeholder="Value" style="flex:0 0 80px"><input class="form-input outcome-note-input" placeholder="Note…" style="flex:2;min-width:0"><button type="button" class="btn btn-sm btn-danger btn-icon" onclick="this.closest('.outcome-row').remove()">✕</button>`;
+  const metricLabel=_outcomeModalMetrics.length?'— metric (optional) —':'— no metric for this workstream —';
+  row.innerHTML=`<select class="form-select outcome-metric-sel" style="flex:2;min-width:0"><option value="">${metricLabel}</option>${opts}</select><input class="form-input outcome-val-input" type="number" step="any" placeholder="Value" style="flex:0 0 80px"><input class="form-input outcome-note-input" placeholder="What changed / result…" style="flex:3;min-width:0"><button type="button" class="btn btn-sm btn-danger btn-icon" onclick="this.closest('.outcome-row').remove()">✕</button>`;
   list.appendChild(row);
 }
-function getOutcomeRows(){
-  return[...document.querySelectorAll('.outcome-row')].map(row=>{
+// Returns {metricRows:[{metric_id,new_value,note}], notesText} — note-only rows are allowed
+function getOutcomeData(){
+  const metricRows=[],notes=[];
+  [...document.querySelectorAll('.outcome-row')].forEach(row=>{
     const metricId=row.querySelector('.outcome-metric-sel').value;
     const val=row.querySelector('.outcome-val-input').value;
     const note=row.querySelector('.outcome-note-input').value.trim();
-    if(!metricId||val==='')return null;
-    return{metric_id:metricId,new_value:parseFloat(val),note:note||null};
-  }).filter(Boolean);
+    if(metricId&&val!=='')metricRows.push({metric_id:metricId,new_value:parseFloat(val),note:note||null});
+    if(note)notes.push(note);
+  });
+  return{metricRows,notesText:notes.join(' • ')||null};
 }
 function closeCompleteModal(){document.getElementById('complete-modal').classList.remove('open');}
 async function saveComplete(){
   const id=document.getElementById('complete-id').value;
   const tt=document.getElementById('complete-task-type').value;
   const impact=document.getElementById('complete-impact').value;
-  const remarks=document.getElementById('complete-remarks').value.trim()||null;
-  if(!remarks){alert('Outcome is required. Say what changed / the result — not just "done". If nothing changed and this wasn\'t really your work, close it as Noise or Delegated instead.');return;}
+  const{metricRows,notesText}=getOutcomeData();
+  if(!metricRows.length&&!notesText){alert('Outcome is required. Note what changed / the result — not just "done". If nothing changed and this wasn\'t really your work, close it as Noise or Delegated instead.');return;}
   if(!impact){alert('Pick an impact level (Low / Medium / High) before marking done.');return;}
   const ws=document.getElementById('complete-workstream').value||null;
   const cust=document.getElementById('complete-customer').value||null;
-  const outcomeRows=getOutcomeRows();
-  let decData=null,artifactLink=null;
+  // completion_remarks = the note(s); if only a metric moved with no note, summarise it
+  let remarks=notesText;
+  if(!remarks&&metricRows.length){remarks=metricRows.map(r=>{const md=_outcomeModalMetrics.find(x=>x.id===r.metric_id);return`${md?md.metric_name:'metric'} → ${r.new_value}`;}).join('; ');}
+  const artifactLink=getArtifactLinks(); // artifacts allowed for every task type
+  let decData=null;
   if(tt==='decide'){
     const dec=document.getElementById('dc-decision').value.trim();
     if(dec){decData={decision:dec,why:document.getElementById('dc-why').value.trim()||null,outcome:document.getElementById('dc-outcome').value.trim()||null,status:document.getElementById('dc-status').value,date:document.getElementById('dc-date').value||TODAY,owner:document.getElementById('dc-owner').value.trim()||'Sudharsan',participants:getChips('dc-participants')||null,workstream:ws,customer:cust,task_id:id};}
-  } else if(tt==='create'){artifactLink=getArtifactLinks();}
-  await completeTask(id,remarks,decData,artifactLink,outcomeRows,{impact,workstream:ws,customer:cust});
+  }
+  await completeTask(id,remarks,decData,artifactLink,metricRows,{impact,workstream:ws,customer:cust});
 }
 async function completeTask(id,remarks,decData,artifactLink,outcomeRows,extra){
   extra=extra||{};
@@ -1773,7 +1834,7 @@ async function dispSet(status){
 function buildDelegationMessage(t){
   if(!t)return'';
   const fmtDate=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Not set';
-  const links=(t.source||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const links=(t.source||'').split('\n').map(s=>s.trim()).filter(Boolean).map(normalizeSource);
   const ch=channel(t.source);const chLabel=ch==='teams'?'Teams':ch==='outlook'?'Email':ch==='document'?'Document':'';
   const logged=t.created_at?new Date(t.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
   let srcLine='—';
@@ -1798,7 +1859,7 @@ function onDelegateChannelChange(){
   else{btn.textContent='Approve & copy';note.textContent='Copies the hand-off message to your clipboard.';}
 }
 function openDelegateModal(id){
-  const t=tasks.find(t=>t.id===id);
+  const t=findTask(id);
   document.getElementById('d-id').value=id;
   document.getElementById('d-to').value=(t&&t.assigned_to&&t.assigned_to!=='Me')?t.assigned_to:'';
   document.getElementById('d-channel').value='cowork';
@@ -1836,12 +1897,12 @@ async function sendTeamsMessage(name,message){
   }catch(e){return{ok:false,error:'Teams not connected here ('+(e.message||'proxy unavailable')+')'};}
 }
 async function approveDelegation(){
-  const id=document.getElementById('d-id').value;const ctx=document.getElementById('d-context').value;const t=tasks.find(t=>t.id===id);
+  const id=document.getElementById('d-id').value;const ctx=document.getElementById('d-context').value;const t=findTask(id);
   const to=document.getElementById('d-to').value.trim()||null;
+  if(!to){alert('Enter who you are delegating this to — the task will be marked “Delegated → that person”.');return;}
   const ch=document.getElementById('d-channel').value;const btn=document.getElementById('d-approve-btn');
   let sentVia='clipboard';
   if(ch==='teams'){
-    if(!to){alert('Enter the person’s name to send on Teams.');return;}
     const orig=btn.textContent;btn.disabled=true;btn.textContent='Sending…';
     const res=await sendTeamsMessage(to,ctx);
     btn.disabled=false;btn.textContent=orig;
@@ -1853,11 +1914,12 @@ async function approveDelegation(){
   }else{
     await navigator.clipboard.writeText(`[Delegating: ${t?.title||id}]${to?' → '+to:''}\n\n${ctx}`).catch(()=>{});
   }
-  await sb.from('tasks').update({status:'delegated',assigned_to:to||(t&&t.assigned_to)||null,delegation_context:ctx,delegation_channel:ch,updated_at:new Date().toISOString()}).eq('id',id);
+  await sb.from('tasks').update({status:'delegated',assigned_to:to,delegation_context:ctx,delegation_channel:ch,updated_at:new Date().toISOString()}).eq('id',id);
   if(ch==='teams'&&sentVia==='teams')alert('Sent to '+to+' on Teams ✓');
   tasks=tasks.filter(x=>x.id!==id);
   focusSessions=focusSessions.filter(s=>s.task_id!==id);
-  closeDelegateModal();renderAllTasks();renderTodayTasks();renderFocusSlots();
+  closeDelegateModal();renderTodayTasks();renderFocusSlots();
+  if(document.getElementById('tab-delegated').classList.contains('active'))renderDelegated();
 }
 
 // ── SETTINGS ─────────────────────────────────────────
@@ -2003,6 +2065,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
     this.classList.add('active');document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
     if(this.dataset.tab==='completed')renderCompleted();
+    if(this.dataset.tab==='delegated')renderDelegated();
     if(this.dataset.tab==='decisions')renderDecisionLog();
     if(this.dataset.tab==='analytics')loadAnalytics();
     if(this.dataset.tab==='synthesis'){synthMonthMode=false;document.getElementById('synth-toggle-btn').textContent='Month view';document.getElementById('synth-week-view').classList.remove('hidden');document.getElementById('synth-month-view').classList.add('hidden');loadSynthesisWeek();}
@@ -2054,17 +2117,38 @@ function setImpact(val){
 function onCompleteWorkstreamChange(){
   populateOutcomeMetricsInModal(document.getElementById('complete-workstream').value);
 }
-async function addNewMetric(){
+// Inline new-metric form — SAME fields as Settings (name + unit + direction)
+function addNewMetric(){
   const ws=document.getElementById('complete-workstream').value;
   if(!ws){alert('Pick a workstream first — metrics belong to a workstream.');return;}
-  const name=prompt(`New metric for "${ws}":\n(e.g. "Customers live", "Validation accuracy %", "Manual hours saved")`);
-  if(!name||!name.trim())return;
-  const unit=prompt('Unit? (optional — e.g. %, AUD, count). Leave blank to skip.')||null;
-  const row={workstream:ws,metric_name:name.trim(),unit:unit&&unit.trim()?unit.trim():null,active:true,period:TODAY};
-  const{data,error}=await sb.from('outcome_metrics').insert(row).select().single();
+  if(document.getElementById('new-metric-form'))return; // already open
+  const div=document.createElement('div');
+  div.id='new-metric-form';
+  div.style.cssText='margin-top:8px;padding:8px;border:1px dashed var(--border);border-radius:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center';
+  div.innerHTML=`<span style="font-size:12px;color:var(--muted)">New metric for <strong>${esc(ws)}</strong>:</span>`+
+    `<input class="form-input" id="nm-name" placeholder="Metric name" style="flex:2;min-width:130px">`+
+    `<select class="form-select" id="nm-unit" style="flex:0 0 auto"><option value="%">%</option><option value="count">count</option><option value="hours">hrs</option><option value="days">days</option><option value="score">score</option></select>`+
+    `<select class="form-select" id="nm-dir" style="flex:0 0 auto"><option value="up_good">↑ higher</option><option value="down_good">↓ lower</option></select>`+
+    `<button type="button" class="btn btn-sm btn-primary" onclick="saveNewMetric()">Save</button>`+
+    `<button type="button" class="btn btn-sm" onclick="document.getElementById('new-metric-form').remove()">Cancel</button>`;
+  document.getElementById('outcome-metric-section').appendChild(div);
+  document.getElementById('nm-name').focus();
+}
+async function saveNewMetric(){
+  const ws=document.getElementById('complete-workstream').value;
+  const name=document.getElementById('nm-name').value.trim();
+  const unit=document.getElementById('nm-unit').value;
+  const dir=document.getElementById('nm-dir').value;
+  if(!name){alert('Enter a metric name.');return;}
+  const{data,error}=await sb.from('outcome_metrics').insert({workstream:ws,metric_name:name,unit,direction:dir,active:true}).select().single();
   if(error){alert('Could not add metric: '+error.message);return;}
-  outcomeMetrics.push(data);
-  populateOutcomeMetricsInModal(ws);
+  outcomeMetrics.push(data);_outcomeModalMetrics.push(data);
+  document.getElementById('new-metric-form')?.remove();
+  // Append the new option to existing rows so typed notes are preserved (don't rebuild)
+  const opt=`<option value="${data.id}">${esc(data.metric_name)}${data.unit?' ('+data.unit+')':''}</option>`;
+  document.querySelectorAll('.outcome-metric-sel').forEach(sel=>sel.insertAdjacentHTML('beforeend',opt));
+  if(!document.querySelector('.outcome-row'))addOutcomeRow();
+  const sel=document.querySelector('.outcome-metric-sel');if(sel)sel.value=data.id; // auto-select new metric
 }
 
 // ── DEEP WORK TOGGLE ──────────────────────────────────
