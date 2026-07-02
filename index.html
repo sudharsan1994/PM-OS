@@ -113,7 +113,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .b-high{background:#FEF2F2;color:#DC2626}.b-medium{background:#FFFBEB;color:#D97706}.b-low{background:#F0FDF4;color:#16A34A}
 .b-reply{background:#EFF6FF;color:#2563EB}.b-review{background:#F5F3FF;color:#7C3AED}.b-create{background:#ECFDF5;color:#059669}
 .b-setup{background:#EEF2FF;color:#4F46E5}.b-call{background:#FFFBEB;color:#D97706}.b-decide{background:#FEF2F2;color:#DC2626}
-.b-investigate{background:#ECFEFF;color:#0891B2}.b-other{background:#F8FAFC;color:#64748B}
+.b-investigate{background:#ECFEFF;color:#0891B2}.b-other{background:#F8FAFC;color:#64748B}.b-follow_up{background:#FFF7ED;color:#C2410C}
 .b-customer{background:#E0E7FF;color:#3730A3}.b-ws{background:#F3F4F6;color:#374151}.b-channel{background:#F1F5F9;color:#475569}
 .b-focus{background:#FEF3C7;color:#92400E}.b-overdue{background:#FEF2F2;color:#DC2626}.b-due-today{background:#FFFBEB;color:#D97706}
 .b-soon{background:#F0FDF4;color:#16A34A}.b-waiting{background:#EFF6FF;color:#2563EB}.b-waiting-hot{background:#FEF2F2;color:#DC2626}
@@ -275,7 +275,47 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .m-empty{padding:24px 20px;text-align:center;color:var(--muted);font-size:13px}
 
 .hidden{display:none!important}
-@media(max-width:768px){.a-grid{grid-template-columns:1fr 1fr}.a-charts-row{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.clocks{gap:8px}}
+@media(max-width:768px){
+  .a-grid{grid-template-columns:1fr 1fr}.a-charts-row{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.clocks{gap:8px}
+  /* HEADER */
+  .app-header{padding:0 10px;gap:8px}
+  .clocks{display:none}
+  .app-version{font-size:10px;padding:2px 6px}
+  /* NAV */
+  .tab-nav{padding:0 8px;top:48px}
+  .tab-btn{padding:10px 10px;font-size:12px}
+  .main-content{padding:12px}
+  /* TASK SECTION HEADER + FILTERS */
+  .ts-header{padding:12px;flex-wrap:wrap;gap:8px}
+  .ts-filters{padding:8px 12px;gap:6px}
+  .f-select{flex:1 1 47%;min-width:0}
+  .f-search{flex:1 1 100%;width:auto}
+  /* TASK CARDS */
+  .task-card{padding:12px;flex-wrap:wrap}
+  .task-actions{flex-basis:100%;justify-content:flex-end;margin-top:8px}
+  .task-title-row{width:100%}
+  /* FOCUS SLOTS */
+  .focus-slot{flex-wrap:wrap}
+  .focus-actions{flex-basis:100%;justify-content:flex-end;margin-top:6px}
+  .morning-banner{flex-direction:column;align-items:flex-start;gap:10px}
+  /* MODALS — near-fullscreen on phones */
+  .modal-overlay{padding:0;align-items:stretch}
+  .modal{max-width:100%;width:100%;height:100%;max-height:100%;border-radius:0;padding:16px}
+  .modal-actions{position:sticky;bottom:-16px;background:var(--surface);padding:12px 0 0;margin-top:16px}
+  /* WIDE TABLES — scroll horizontally instead of squashing */
+  .metrics-group{overflow-x:auto}
+  .metrics-table{min-width:640px}
+  .month-table{display:block;overflow-x:auto;white-space:nowrap}
+  /* SYNTHESIS / DECISIONS */
+  .synth-nav{flex-wrap:wrap}
+  .synth-stats{grid-template-columns:1fr 1fr}
+  .dec-header{flex-wrap:wrap}
+  .outcome-metrics-grid{grid-template-columns:1fr}
+}
+@media(max-width:420px){
+  .f-select{flex:1 1 100%}
+  .synth-stats{grid-template-columns:1fr}
+}
 #login-screen{display:none;position:fixed;inset:0;background:#0F172A;z-index:9999;display:flex;align-items:center;justify-content:center}
 .login-card{background:#1E293B;border:1px solid #334155;border-radius:12px;padding:40px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:20px}
 .login-title{color:#fff;font-size:20px;font-weight:700;text-align:center}.login-sub{color:#94A3B8;font-size:13px;text-align:center;margin-top:-12px}
@@ -305,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.9 · 2026-06-26</div>
+  <div class="app-version">v1.91 · 2026-07-02</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -362,7 +402,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="ts-filters">
       <select class="f-select" id="t-show" onchange="renderTodayTasks()"><option value="">All open</option><option value="today">📌 Today</option><option value="delayed">⚠ Delayed</option></select>
       <select class="f-select" id="t-pri" onchange="renderTodayTasks()"><option value="">Any priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
-      <select class="f-select" id="t-type" onchange="renderTodayTasks()"><option value="">Any action</option><option value="reply">Reply</option><option value="review">Review</option><option value="create">Create</option><option value="setup">Setup</option><option value="call">Call</option><option value="decide">Decide</option><option value="investigate">Investigate</option><option value="other">Other</option></select>
+      <select class="f-select" id="t-type" onchange="renderTodayTasks()"><option value="">Any action</option><option value="reply">Reply</option><option value="review">Review</option><option value="create">Create</option><option value="setup">Setup</option><option value="call">Call</option><option value="decide">Decide</option><option value="investigate">Investigate</option><option value="follow_up">Follow-up</option><option value="other">Other</option></select>
       <select class="f-select" id="t-chan" onchange="renderTodayTasks()"><option value="">Any channel</option><option value="teams">Teams</option><option value="outlook">Outlook</option><option value="document">Document</option><option value="other">Other</option><option value="none">No link</option></select>
       <select class="f-select" id="t-cust" onchange="renderTodayTasks()"><option value="">Any customer</option></select>
       <select class="f-select" id="t-ws" onchange="renderTodayTasks()"><option value="">Any workstream</option></select>
@@ -621,7 +661,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="form-group"><label class="form-label">Action required <span style="font-weight:400;color:var(--muted)">— what exactly needs to be done</span></label><textarea class="form-textarea" id="f-action" rows="2" placeholder="The concrete next step expected from whoever owns this"></textarea></div>
   <div class="form-row">
     <div class="form-group"><label class="form-label">Priority</label><select class="form-select" id="f-priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select></div>
-    <div class="form-group"><label class="form-label">Action type</label><select class="form-select" id="f-type"><option value="">—</option><option value="reply">Reply</option><option value="review">Review</option><option value="create">Create</option><option value="setup">Setup</option><option value="call">Call</option><option value="decide">Decide</option><option value="investigate">Investigate</option><option value="other">Other</option></select></div>
+    <div class="form-group"><label class="form-label">Action type</label><select class="form-select" id="f-type" onchange="toggleWaitingOnField()"><option value="">—</option><option value="reply">Reply</option><option value="review">Review</option><option value="create">Create</option><option value="setup">Setup</option><option value="call">Call</option><option value="decide">Decide</option><option value="investigate">Investigate</option><option value="follow_up">Follow-up</option><option value="other">Other</option></select></div>
   </div>
   <div class="form-row">
     <div class="form-group"><label class="form-label">Customer</label><select class="form-select" id="f-customer" onchange="handleInlineAdd(this,'customer')"><option value="">—</option></select></div>
@@ -632,6 +672,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="form-group"><label class="form-label">Awaiting since</label><input class="form-input" id="f-awaiting" type="date"></div>
   </div>
   <div class="form-group"><label class="form-label">Requester</label><select class="form-select" id="f-requester" onchange="handleInlineAdd(this,'requester')"><option value="">—</option></select></div>
+  <div class="form-group hidden" id="waiting-on-group"><label class="form-label">Waiting on <span style="font-weight:400;color:var(--muted)">— the person you're chasing for this follow-up</span></label><select class="form-select" id="f-waiting-on" onchange="handleInlineAdd(this,'waiting_on')"><option value="">—</option></select></div>
   <div class="form-group">
     <label class="form-label">Source / thread links</label>
     <div id="f-sources-list"></div>
@@ -715,6 +756,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <input type="hidden" id="complete-satisfaction" value="0">
   <input type="hidden" id="complete-id">
   <input type="hidden" id="complete-task-type">
+  <div id="complete-error" class="hidden" style="display:none;background:#3f1d1d;border:1px solid var(--danger);color:#fecaca;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px"></div>
   <div class="modal-actions">
     <button class="btn" onclick="closeCompleteModal()">Cancel</button>
     <button class="btn btn-primary" onclick="saveComplete()">Save & mark done ✓</button>
@@ -871,10 +913,32 @@ async function importPendingTasks(event){
         alert('No pending tasks found in file.');return;
       }
       btn.textContent=`⏳ Inserting ${pending.length} tasks…`;
-      let inserted=0,failed=0,skipped=0;
+      let inserted=0,failed=0,skipped=0,peopleAdded=0,entitiesAdded=0;
       // Dedup: get existing sources first
       const{data:existing}=await sb.from('tasks').select('source').limit(1000);
       const existingSources=new Set((existing||[]).map(t=>t.source).filter(Boolean));
+      // Known-entity sets, refreshed as we go so repeats within the same import aren't inserted twice
+      const knownPeople=new Set(teamMembers.map(m=>m.name.toLowerCase()));
+      const knownCustomers=new Set(customers.map(c=>c.name.toLowerCase()));
+      const knownWorkstreams=new Set(workstreams.map(w=>w.name.toLowerCase()));
+      async function ensurePerson(name){
+        if(!name)return;const n=name.trim();if(!n||knownPeople.has(n.toLowerCase())||n.toLowerCase()==='me')return;
+        knownPeople.add(n.toLowerCase());
+        const{data,error}=await sb.from('team_members').insert({name:n,active:true}).select().single();
+        if(!error&&data){teamMembers.push(data);peopleAdded++;}
+      }
+      async function ensureCustomer(name){
+        if(!name)return;const n=name.trim();if(!n||knownCustomers.has(n.toLowerCase()))return;
+        knownCustomers.add(n.toLowerCase());
+        const{data,error}=await sb.from('customers').insert({name:n,active:true}).select().single();
+        if(!error&&data){customers.push(data);entitiesAdded++;}
+      }
+      async function ensureWorkstream(name){
+        if(!name)return;const n=name.trim();if(!n||knownWorkstreams.has(n.toLowerCase()))return;
+        knownWorkstreams.add(n.toLowerCase());
+        const{data,error}=await sb.from('workstreams').insert({name:n,active:true}).select().single();
+        if(!error&&data){workstreams.push(data);entitiesAdded++;}
+      }
       for(const raw of pending){
         if(raw.source&&existingSources.has(raw.source)){skipped++;continue;}
         // Normalise scheduler output to match Supabase schema
@@ -888,9 +952,17 @@ async function importPendingTasks(event){
           workstream:raw.workstream||null,
           customer:raw.customer||null,
           assigned_to:raw.assigned_to||'Me',
+          waiting_on:raw.waiting_on||null,
           status:'open',
           created_at:raw.created_at||raw.created||new Date().toISOString(),
         };
+        // Ensure requester / assignee / waiting-on / customer / workstream exist as lookup entities before the task lands,
+        // so nothing shows up as orphan free text missing from Settings/filters.
+        await ensurePerson(task.requester);
+        await ensurePerson(task.assigned_to);
+        await ensurePerson(task.waiting_on);
+        await ensureCustomer(task.customer);
+        for(const w of (task.workstream||'').split(',').map(s=>s.trim()).filter(Boolean))await ensureWorkstream(w);
         // Remove null fields
         Object.keys(task).forEach(k=>{if(task[k]===null)delete task[k];});
         const{error}=await sb.from('tasks').insert(task);
@@ -901,7 +973,7 @@ async function importPendingTasks(event){
       event.target.value='';
       btn.textContent='✓ Done!';btn.style.color='var(--success)';
       setTimeout(()=>{btn.innerHTML='📥 Import pending<input type="file" accept=".json" id="import-file-input" style="display:none" onchange="importPendingTasks(event)">';btn.style.color='';},3000);
-      alert(`Import complete.\nInserted: ${inserted}\nSkipped (already tracked): ${skipped}\nFailed: ${failed}\n\nDelete or clear pending_tasks.json from your PMOS folder to reset.`);
+      alert(`Import complete.\nInserted: ${inserted}\nSkipped (already tracked): ${skipped}\nFailed: ${failed}\nNew people added: ${peopleAdded}\nNew customers/workstreams added: ${entitiesAdded}\n\nDelete or clear pending_tasks.json from your PMOS folder to reset.`);
       // Reload tasks
       await loadAll();populateFilters();renderToday();renderAllTasks();
     }catch(err){
@@ -1035,6 +1107,7 @@ function populateFilters(){
   document.getElementById('d-to-list').innerHTML=dNames.map(n=>`<option value="${esc(n)}"></option>`).join('');
   const rmO=teamMembers.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('');
   document.getElementById('f-requester').innerHTML='<option value="">—</option>'+rmO+addNew;
+  document.getElementById('f-waiting-on').innerHTML='<option value="">—</option>'+rmO+addNew;
   document.getElementById('f-workstream').innerHTML='<option value="">—</option>'+wO+addNew;
   document.getElementById('adec-ws').innerHTML='<option value="">—</option>'+wO;
   document.getElementById('adec-cust').innerHTML='<option value="">—</option>'+cO;
@@ -1570,6 +1643,7 @@ function taskCard(t,opts={}){
       <div class="task-meta">
         ${t.requester?`<span>from ${esc(t.requester)}</span>`:''}
         ${t.assigned_to&&t.assigned_to!=='Me'?`<span style="color:var(--primary);font-weight:500">→ ${esc(t.assigned_to)}</span>`:''}
+        ${t.waiting_on?`<span style="color:#C2410C;font-weight:500">⏳ waiting on ${esc(t.waiting_on)}</span>`:''}
         ${t.source?(t.source.split('\n').filter(Boolean).map((s,i)=>`<a href="${normalizeSource(s)}" target="_blank" class="task-link">Source${t.source.split('\n').filter(Boolean).length>1?' '+(i+1):''} ↗</a>`).join('')):''}
         ${artifactLink}
         ${isCompleted&&t.completed_at?`<span>Done ${new Date(t.completed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>`:''}
@@ -1665,11 +1739,17 @@ async function saveMorningPlan(){
 function closeMorningPlan(){document.getElementById('mp-modal').classList.remove('open');}
 
 // ── ADD/EDIT TASK ─────────────────────────────────────
+function toggleWaitingOnField(){
+  const isFollowUp=document.getElementById('f-type').value==='follow_up';
+  document.getElementById('waiting-on-group').classList.toggle('hidden',!isFollowUp);
+  if(isFollowUp)document.getElementById('f-assignee').value='Me';
+}
 function openAddTask(){
   document.getElementById('add-modal-title').textContent='Add task';document.getElementById('f-id').value='';document.getElementById('delete-btn').classList.add('hidden');
-  ['f-title','f-desc','f-why','f-action','f-requester','f-workstream'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});populateSources('');
+  ['f-title','f-desc','f-why','f-action','f-requester','f-workstream','f-waiting-on'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});populateSources('');
   document.getElementById('f-priority').value='medium';document.getElementById('f-type').value='';document.getElementById('f-customer').value='';document.getElementById('f-deep-work').checked=false;document.getElementById('deep-toggle').className='deep-toggle';document.getElementById('deep-toggle-icon').textContent='⬜';
   document.getElementById('f-assignee').value='Me';document.getElementById('f-due').value='';document.getElementById('f-awaiting').value='';
+  toggleWaitingOnField();
   document.getElementById('add-modal').classList.add('open');
 }
 function openEditTask(id){
@@ -1682,13 +1762,15 @@ function openEditTask(id){
   document.getElementById('f-due').value=t.due_date||'';document.getElementById('f-awaiting').value=t.awaiting_since||'';
   document.getElementById('f-requester').value=t.requester||'';populateSources(t.source||'');
   document.getElementById('f-workstream').value=t.workstream||'';const dw=t.is_deep_work||false;document.getElementById('f-deep-work').checked=dw;document.getElementById('deep-toggle').className='deep-toggle'+(dw?' is-deep':'');document.getElementById('deep-toggle-icon').textContent=dw?'✅':'⬜';
+  document.getElementById('f-waiting-on').value=t.waiting_on||'';
+  toggleWaitingOnField();
   document.getElementById('add-modal').classList.add('open');
 }
 function closeAddModal(){document.getElementById('add-modal').classList.remove('open');}
 async function saveTask(){
   const id=document.getElementById('f-id').value;const title=document.getElementById('f-title').value.trim();
   if(!title){alert('Title is required.');return;}
-  const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
+  const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,waiting_on:document.getElementById('f-waiting-on').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
   if(id){await sb.from('tasks').update(data).eq('id',id);const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};}
   else{data.status='open';data.created_at=new Date().toISOString();const{data:nt}=await sb.from('tasks').insert(data).select().single();if(nt)tasks.unshift(nt);}
   closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();
@@ -1724,6 +1806,8 @@ function openCompleteModal(id){
   const t=tasks.find(t=>t.id===id);if(!t)return;
   document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
   document.getElementById('complete-impact').value='';['impact-low','impact-medium','impact-high'].forEach(x=>document.getElementById(x)?.classList.remove('sat-active'));
+  const ceErr=document.getElementById('complete-error');ceErr.style.display='none';ceErr.textContent='';
+  document.getElementById('outcome-rows-list').style.outline='';document.getElementById('impact-group').style.outline='';
   const wsSel=document.getElementById('complete-workstream');
   wsSel.innerHTML='<option value="">— none —</option>'+workstreams.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
   if(t.workstream&&!workstreams.some(w=>w.name===t.workstream))wsSel.insertAdjacentHTML('beforeend',`<option value="${esc(t.workstream)}">${esc(t.workstream)}</option>`);
@@ -1776,13 +1860,20 @@ function getOutcomeData(){
   return{metricRows,notesText:notes.join(' • ')||null};
 }
 function closeCompleteModal(){document.getElementById('complete-modal').classList.remove('open');}
+function showCompleteError(msg,highlightId){
+  const el=document.getElementById('complete-error');el.textContent='⚠ '+msg;el.style.display='block';
+  document.getElementById('outcome-rows-list').style.outline='';document.getElementById('impact-group').style.outline='';
+  if(highlightId)document.getElementById(highlightId).style.outline='2px solid var(--danger)';
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
 async function saveComplete(){
   const id=document.getElementById('complete-id').value;
   const tt=document.getElementById('complete-task-type').value;
   const impact=document.getElementById('complete-impact').value;
   const{metricRows,notesText}=getOutcomeData();
-  if(!metricRows.length&&!notesText){alert('Outcome is required. Note what changed / the result — not just "done". If nothing changed and this wasn\'t really your work, close it as Noise or Delegated instead.');return;}
-  if(!impact){alert('Pick an impact level (Low / Medium / High) before marking done.');return;}
+  if(!metricRows.length&&!notesText){showCompleteError('Outcome is required. Note what changed / the result — not just "done". If nothing changed and this wasn\'t really your work, close it as Noise or Delegated instead.','outcome-rows-list');return;}
+  if(!impact){showCompleteError('Pick an impact level (Low / Medium / High) before marking done.','impact-group');return;}
+  document.getElementById('complete-error').style.display='none';
   const ws=document.getElementById('complete-workstream').value||null;
   const cust=document.getElementById('complete-customer').value||null;
   // completion_remarks = the note(s); if only a metric moved with no note, summarise it
@@ -1942,14 +2033,14 @@ async function rmCust(id){await sb.from('customers').update({active:false}).eq('
 async function handleInlineAdd(sel,type){
   if(sel.value!=='__add_new__')return;
   sel.value=''; // reset immediately
-  const label={customer:'customer',workstream:'workstream',requester:'requester'}[type];
+  const label={customer:'customer',workstream:'workstream',requester:'requester',waiting_on:'person'}[type];
   const name=prompt(`New ${label} name:`);
   if(!name||!name.trim())return;
   const n=name.trim();
   let saved;
   if(type==='customer'){const{data}=await sb.from('customers').insert({name:n,active:true}).select().single();saved=data;if(saved)customers.push(saved);}
   else if(type==='workstream'){const{data}=await sb.from('workstreams').insert({name:n,active:true}).select().single();saved=data;if(saved)workstreams.push(saved);}
-  else if(type==='requester'){const{data}=await sb.from('team_members').insert({name:n,active:true}).select().single();saved=data;if(saved)teamMembers.push(saved);}
+  else if(type==='requester'||type==='waiting_on'){const{data}=await sb.from('team_members').insert({name:n,active:true}).select().single();saved=data;if(saved)teamMembers.push(saved);}
   if(saved){populateFilters();sel.value=n;}
   else alert('Save failed — check your connection.');
 }
