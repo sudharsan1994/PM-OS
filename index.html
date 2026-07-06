@@ -345,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.92 · 2026-07-02</div>
+  <div class="app-version">v1.93 · 2026-07-06</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -1101,18 +1101,23 @@ function populateFilters(){
   setOpts('t-assignee','Any assignee',tO);
   setOpts('t-req','Any requester',rO);setOpts('c-req','Any requester',rO);
   const addNew='<option value="__add_new__">＋ Add new…</option>';
-  document.getElementById('f-customer').innerHTML='<option value="">—</option>'+cO+addNew;
-  document.getElementById('f-assignee').innerHTML=tO;
+  setHtmlKeepValue('f-customer','<option value="">—</option>'+cO+addNew);
+  setHtmlKeepValue('f-assignee',tO);
   const dNames=[...new Set([...teamMembers.map(m=>m.name),...tasks.filter(t=>t.requester).map(t=>t.requester)])].filter(Boolean).sort();
   document.getElementById('d-to-list').innerHTML=dNames.map(n=>`<option value="${esc(n)}"></option>`).join('');
   const rmO=teamMembers.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('');
-  document.getElementById('f-requester').innerHTML='<option value="">—</option>'+rmO+addNew;
-  document.getElementById('f-waiting-on').innerHTML='<option value="">—</option>'+rmO+addNew;
-  document.getElementById('f-workstream').innerHTML='<option value="">—</option>'+wO+addNew;
-  document.getElementById('adec-ws').innerHTML='<option value="">—</option>'+wO;
-  document.getElementById('adec-cust').innerHTML='<option value="">—</option>'+cO;
+  setHtmlKeepValue('f-requester','<option value="">—</option>'+rmO+addNew);
+  setHtmlKeepValue('f-waiting-on','<option value="">—</option>'+rmO+addNew);
+  setHtmlKeepValue('f-workstream','<option value="">—</option>'+wO+addNew);
+  setHtmlKeepValue('adec-ws','<option value="">—</option>'+wO);
+  setHtmlKeepValue('adec-cust','<option value="">—</option>'+cO);
 }
-function setOpts(id,ph,opts){const el=document.getElementById(id);if(el)el.innerHTML=`<option value="">${ph}</option>`+opts;}
+// Rebuilds a <select>'s options while keeping whatever was already chosen (if it's still a valid option).
+// Fixes the bug where picking one field (e.g. Action type) wiped out Customer/Requester/Workstream/etc,
+// because populateFilters() rebuilds every dropdown's option list on every save/add and used to always
+// reset to the blank/placeholder option regardless of what the user had already selected.
+function setHtmlKeepValue(id,html){const el=document.getElementById(id);if(!el)return;const prev=el.value;el.innerHTML=html;if(prev&&[...el.options].some(o=>o.value===prev))el.value=prev;}
+function setOpts(id,ph,opts){const el=document.getElementById(id);if(!el)return;const prev=el.value;el.innerHTML=`<option value="">${ph}</option>`+opts;if(prev&&[...el.options].some(o=>o.value===prev))el.value=prev;}
 
 // ── TODAY ─────────────────────────────────────────────
 function renderToday(){renderMorningBanner();renderFocusSlots();renderTodayTasks();}
