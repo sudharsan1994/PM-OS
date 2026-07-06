@@ -345,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.91 · 2026-07-02</div>
+  <div class="app-version">v1.92 · 2026-07-02</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -1771,8 +1771,8 @@ async function saveTask(){
   const id=document.getElementById('f-id').value;const title=document.getElementById('f-title').value.trim();
   if(!title){alert('Title is required.');return;}
   const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,waiting_on:document.getElementById('f-waiting-on').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
-  if(id){await sb.from('tasks').update(data).eq('id',id);const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};}
-  else{data.status='open';data.created_at=new Date().toISOString();const{data:nt}=await sb.from('tasks').insert(data).select().single();if(nt)tasks.unshift(nt);}
+  if(id){const{error}=await sb.from('tasks').update(data).eq('id',id);if(error){alert('Save failed — nothing was changed: '+error.message);return;}const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};}
+  else{data.status='open';data.created_at=new Date().toISOString();const{data:nt,error}=await sb.from('tasks').insert(data).select().single();if(error){alert('Save failed — task was NOT created: '+error.message);return;}if(nt)tasks.unshift(nt);}
   closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();
 }
 let _pendingDeleteId=null;
@@ -1895,9 +1895,16 @@ async function completeTask(id,remarks,decData,artifactLink,outcomeRows,extra){
   if(extra.workstream!==undefined)upd.workstream=extra.workstream;
   if(extra.customer!==undefined)upd.customer=extra.customer;
   const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');if(sat>0)upd.satisfaction=sat;
-  await sb.from('tasks').update(upd).eq('id',id);
-  if(decData)await sb.from('decisions').insert(decData);
-  if(outcomeRows&&outcomeRows.length)await sb.from('task_outcomes').insert(outcomeRows.map(o=>({task_id:id,metric_id:o.metric_id,new_value:o.new_value,note:o.note||null,logged_at:now})));
+  const{error:completeErr}=await sb.from('tasks').update(upd).eq('id',id);
+  if(completeErr){
+    // DB write rejected (e.g. a column the UI writes doesn't exist yet) — do NOT remove the task
+    // from local state or close the modal. Silently doing so was the exact bug where a task
+    // looked completed (count dropped) but reappeared as open after reload.
+    showCompleteError('Save failed — task was NOT marked done: '+completeErr.message+'. If this mentions a missing column, a pending SQL migration hasn\'t been run yet — check the PMOS folder for migration_*.sql files.');
+    return;
+  }
+  if(decData){const{error:decErr}=await sb.from('decisions').insert(decData);if(decErr)console.error('Decision log failed:',decErr);}
+  if(outcomeRows&&outcomeRows.length){const{error:outErr}=await sb.from('task_outcomes').insert(outcomeRows.map(o=>({task_id:id,metric_id:o.metric_id,new_value:o.new_value,note:o.note||null,logged_at:now})));if(outErr)console.error('Outcome log failed:',outErr);}
   const fs=focusSessions.find(s=>s.task_id===id);if(fs){await sb.from('focus_sessions').update({completed:true}).eq('id',fs.id);fs.completed=true;}
   tasks=tasks.filter(t=>t.id!==id);closeCompleteModal();renderTodayTasks();renderAllTasks();renderFocusSlots();
 }
