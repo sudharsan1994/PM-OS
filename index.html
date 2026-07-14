@@ -345,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.93 · 2026-07-06</div>
+  <div class="app-version">v1.94 · 2026-07-14</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -379,6 +379,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
           📥 Import pending
           <input type="file" accept=".json" id="import-file-input" style="display:none" onchange="importPendingTasks(event)">
         </label>
+        <button class="btn btn-sm" id="export-dismissed-btn" onclick="exportDismissedThreads()" title="Download dismissed_threads.json → save into your PMOS folder so the scanner stops re-raising things you deleted / marked noise / delegated">⬇️ Export dismissed</button>
       </div>
     </div>
     <div id="insights-body" class="insights-loading">Loading…</div>
@@ -899,6 +900,19 @@ async function loadAll(){
   tasks=tR.data||[];teamMembers=tmR.data||[];customers=cR.data||[];workstreams=wsR.data||[];
   focusSessions=fsR.data||[];yesterdayFS=yfR.data||[];teamRoles=trR.data||[];outcomeMetrics=omR.data||[];
 }
+// Groups every message of one conversation under a single key so dedup/dismissal
+// can work at thread level, not per-message. Scanner supplies thread_key directly;
+// this is the client-side fallback for Teams (chat id lives in the source URL).
+// Email web links carry no conversation id, so those return null here and rely on
+// the scanner-supplied thread_key instead.
+function threadKeyFromSource(src){
+  if(!src||typeof src!=='string')return null;
+  const t=src.match(/chats\/([^/]+)\/messages/);
+  if(t)return 'teams-chat:'+decodeURIComponent(t[1]);
+  const ch=src.match(/channels\/([^/]+)/);
+  if(ch)return 'teams-channel:'+decodeURIComponent(ch[1]);
+  return null;
+}
 async function importPendingTasks(event){
   const file=event.target.files[0];
   if(!file)return;
@@ -914,9 +928,14 @@ async function importPendingTasks(event){
       }
       btn.textContent=`⏳ Inserting ${pending.length} tasks…`;
       let inserted=0,failed=0,skipped=0,peopleAdded=0,entitiesAdded=0;
-      // Dedup: get existing sources first
-      const{data:existing}=await sb.from('tasks').select('source').limit(1000);
-      const existingSources=new Set((existing||[]).map(t=>t.source).filter(Boolean));
+      // Dedup: get ALL existing sources (paginated). The old .limit(1000) silently
+      // dropped older tasks once the table passed 1000 rows, letting them re-import.
+      const existingSources=new Set();
+      for(let from=0;;from+=1000){
+        const{data:page}=await sb.from('tasks').select('source').range(from,from+999);
+        (page||[]).forEach(t=>{if(t.source)existingSources.add(t.source);});
+        if(!page||page.length<1000)break;
+      }
       // Known-entity sets, refreshed as we go so repeats within the same import aren't inserted twice
       const knownPeople=new Set(teamMembers.map(m=>m.name.toLowerCase()));
       const knownCustomers=new Set(customers.map(c=>c.name.toLowerCase()));
@@ -949,6 +968,7 @@ async function importPendingTasks(event){
           type:raw.type||null,
           requester:raw.requester||null,
           source:raw.source||null,
+          thread_key:raw.thread_key||threadKeyFromSource(raw.source)||null,
           workstream:raw.workstream||null,
           customer:raw.customer||null,
           assigned_to:raw.assigned_to||'Me',
@@ -1373,6 +1393,49 @@ function exportDecisionsCSV(){
   const csv=[headers.join(','),...rows.map(r=>r.map(e2).join(','))].join('\n');
   const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:`decisions-${TODAY}.csv`});
   a.click();URL.revokeObjectURL(a.href);
+}
+
+// Exports the threads Sudharsan has dismissed (deleted / noise / intake_error / delegated)
+// so the morning & evening scanners can read them and STOP re-raising a topic he already
+// killed. The scanner judges each new message in a dismissed thread: continuation → skip,
+// genuinely new ask aimed at him → keep. Save the downloaded file into the PMOS folder.
+async function exportDismissedThreads(){
+  const btn=document.getElementById('export-dismissed-btn');
+  const orig=btn.textContent;btn.textContent='⏳ Building…';btn.disabled=true;
+  try{
+    const DISMISSED=['deleted','noise','intake_error','delegated'];
+    const rows=[];
+    for(let from=0;;from+=1000){
+      const{data:page,error}=await sb.from('tasks')
+        .select('thread_key,source,status,title,requester,customer,updated_at')
+        .in('status',DISMISSED).order('updated_at',{ascending:false}).range(from,from+999);
+      if(error)throw error;
+      rows.push(...(page||[]));
+      if(!page||page.length<1000)break;
+    }
+    // One entry per thread (keep the most recent, already ordered desc). Fall back to
+    // source when a thread_key is absent, so nothing dismissed is silently uncovered.
+    const seen=new Set(),out=[];
+    for(const r of rows){
+      const tk=r.thread_key||threadKeyFromSource(r.source);
+      const key=tk||('source:'+r.source);
+      if(!key||seen.has(key))continue;
+      seen.add(key);
+      out.push({thread_key:tk||null,source:r.source||null,disposition:r.status,
+        title:r.title||null,requester:r.requester||null,customer:r.customer||null,
+        dismissed_at:r.updated_at||null});
+    }
+    const a=Object.assign(document.createElement('a'),{
+      href:URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'})),
+      download:'dismissed_threads.json'});
+    a.click();URL.revokeObjectURL(a.href);
+    btn.textContent=`✓ ${out.length} threads`;
+    setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},3000);
+    alert(`Exported ${out.length} dismissed threads (from ${rows.length} tasks).\n\nSave dismissed_threads.json into your PMOS folder:\n/Users/sudharsan/Documents/Claude/Projects/PMOS/\n\nThe morning & evening scanners read it to stop re-raising dismissed items.`);
+  }catch(err){
+    btn.textContent=orig;btn.disabled=false;
+    alert('Export failed: '+err.message);
+  }
 }
 
 // ── ANALYTICS ─────────────────────────────────────────
