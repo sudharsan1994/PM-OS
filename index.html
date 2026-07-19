@@ -587,6 +587,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <!-- Task params strip -->
   <div id="claude-params" style="background:var(--surface2);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.8;display:flex;flex-wrap:wrap;gap:4px 12px"></div>
 
+  <!-- Claude executor status / result panel -->
+  <div id="claude-status-panel" style="display:none;margin-bottom:16px"></div>
+
   <!-- Subject -->
   <div class="form-group">
     <label class="form-label">Subject</label>
@@ -614,6 +617,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <div class="modal-actions">
     <button class="btn" onclick="closeClaudeModal()">Cancel</button>
+    <button class="btn" onclick="queueForClaude()" title="Claude runs this automatically on its next scheduled pass (every 30 min, 11:30–21:00 IST) and posts the result back here — no session to babysit" style="color:#6D28D9;border-color:#C4B5FD">⚡ Queue for Claude (auto)</button>
     <button class="btn btn-primary" onclick="copyClaudeBrief()">Copy &amp; Open Claude →</button>
   </div>
 </div>
@@ -1688,6 +1692,8 @@ function taskCard(t,opts={}){
   const impactBadge=isCompleted&&t.impact?`<span class="badge" style="background:${t.impact==='high'?'#DCFCE7':t.impact==='medium'?'#FEF9C3':'#F1F5F9'};color:${t.impact==='high'?'#166534':t.impact==='medium'?'#854D0E':'#64748B'}" title="Impact">${cap(t.impact)} impact</span>`:'';
   const copyBtn=`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${t.id}')" title="Send to Claude" style="color:var(--muted)">⚡</button>`;
   const claudeBtn=!isCompleted?`<button class="btn btn-sm btn-icon" onclick="openClaudeModal('${t.id}')" title="Assign to Claude" style="color:#7C3AED;border-color:#C4B5FD">⚡</button>`:'';
+  const _cla={queued:['⚡ Queued','#EEF2FF','#4338CA'],running:['⚡ Running…','#DBEAFE','#1D4ED8'],done:['✅ Claude done','#DCFCE7','#166534'],needs_input:['❓ Needs input','#FEF3C7','#92400E'],failed:['⚠ Claude failed','#FEE2E2','#B91C1C']}[t.claude_status]||null;
+  const claudeBadge=_cla?`<span class="badge" style="background:${_cla[1]};color:${_cla[2]};cursor:pointer" onclick="openClaudeModal('${t.id}')" title="Click to open the Claude panel for this task">${_cla[0]}</span>`:'';
 
   const remarks=isCompleted&&t.completion_remarks?`<div class="remarks-preview">${esc(t.completion_remarks.substring(0,120))}${t.completion_remarks.length>120?'…':''}</div>`:'';
   const artifactLink=isCompleted&&t.artifact_link?t.artifact_link.split('\n').filter(Boolean).map((a,i,arr)=>`<a href="${a}" target="_blank" class="task-link">↗ Artifact${arr.length>1?' '+(i+1):''}</a>`).join(''):'';
@@ -1705,6 +1711,7 @@ function taskCard(t,opts={}){
           ${t.customer?`<span class="badge b-customer">${esc(t.customer)}</span>`:''}
           ${(t.workstream||'').split(',').filter(Boolean).slice(0,2).map(w=>`<span class="badge b-ws">${esc(w.trim())}</span>`).join('')}
           ${ci?`<span class="badge b-channel">${ci} ${cap(ch)}</span>`:''}
+          ${claudeBadge}
           ${eta}${aw}${db}
         </div>
       </div>
@@ -2406,9 +2413,35 @@ function openClaudeModal(id){
   const linkEl=document.getElementById('claude-source-link');
   const srcLinks=(t.source||'').split('\n').filter(Boolean);
   linkEl.innerHTML=srcLinks.length?srcLinks.map((s,i)=>`<a href="${normalizeSource(s)}" target="_blank" style="color:var(--primary);margin-right:10px">Source${srcLinks.length>1?' '+(i+1):''} ↗</a>`).join('')+'<span style="color:var(--muted)">(links included in brief)</span>':'<span style="color:var(--muted)">No source link on this task.</span>';
+  // Executor status / result panel
+  const panel=document.getElementById('claude-status-panel');
+  const cs=t.claude_status;
+  if(cs){
+    const meta={queued:['⚡ Queued','#EEF2FF','#4338CA','Waiting for the next executor pass (every 30 min, 11:30–21:00 IST).'],running:['⚡ Running…','#DBEAFE','#1D4ED8','Claude is working on this now.'],done:['✅ Done by Claude','#DCFCE7','#166534','Claude finished — review the draft below before using it.'],needs_input:['❓ Needs your input','#FEF3C7','#92400E','Claude has questions before it can proceed. Answer, edit the brief, and re-queue.'],failed:['⚠ Failed','#FEE2E2','#B91C1C','Claude could not complete this — see the note below.']}[cs]||['',cs,'#333333',''];
+    const ran=t.claude_run_at?` · ${new Date(t.claude_run_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`:'';
+    const body=t.claude_result?`<div style="white-space:pre-wrap;font-size:12.5px;line-height:1.55;color:#1f2937;margin-top:8px;max-height:280px;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 12px">${esc(t.claude_result)}</div>`:'';
+    const art=t.artifact_link?`<div style="margin-top:8px">${t.artifact_link.split('\n').filter(Boolean).map(a=>`<a href="${a}" target="_blank" style="color:var(--primary);margin-right:10px">↗ Output file</a>`).join('')}</div>`:'';
+    const err=t.claude_error?`<div style="color:#B91C1C;font-size:12px;margin-top:8px">${esc(t.claude_error)}</div>`:'';
+    panel.style.display='block';
+    panel.innerHTML=`<div style="background:${meta[1]};border-radius:8px;padding:10px 14px"><div style="font-weight:600;color:${meta[2]};font-size:13px">${meta[0]}${ran}</div><div style="font-size:11.5px;color:${meta[2]};opacity:.85;margin-top:2px">${meta[3]}</div>${body}${art}${err}</div>`;
+  } else { panel.style.display='none'; panel.innerHTML=''; }
   document.getElementById('claude-modal').classList.add('open');
 }
 function closeClaudeModal(){document.getElementById('claude-modal').classList.remove('open');}
+async function queueForClaude(){
+  const id=_claudeTaskId;if(!id)return;
+  const scope=document.getElementById('claude-scope-input').value.trim();
+  const sourceText=document.getElementById('claude-source-text').value.trim();
+  let fullScope=scope;
+  if(sourceText)fullScope=(scope?scope+'\n\n':'')+'[Source context pasted by Sudharsan]\n'+sourceText;
+  const upd={claude_status:'queued',claude_result:null,claude_error:null,claude_run_at:null,updated_at:new Date().toISOString()};
+  if(fullScope)upd.claude_scope=fullScope;
+  const{error}=await sb.from('tasks').update(upd).eq('id',id);
+  if(error){alert('Could not queue: '+error.message);return;}
+  const i=tasks.findIndex(t=>t.id===id);if(i>=0)Object.assign(tasks[i],upd);
+  closeClaudeModal();
+  renderTodayTasks();renderAllTasks();renderFocusSlots();
+}
 async function copyClaudeBrief(){
   const id=_claudeTaskId;if(!id)return;
   const t=tasks.find(t=>t.id===id)||completedTasks.find(t=>t.id===id);if(!t)return;
