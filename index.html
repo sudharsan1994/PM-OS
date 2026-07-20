@@ -345,15 +345,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.94 · 2026-07-14</div>
+  <div class="app-version">v1.96 · 2026-07-20</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
+<style>
+.bet-card{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.bet-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bet-title{font-weight:600;font-size:14px;flex:1;min-width:200px}
+.bet-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;text-transform:uppercase}
+.bp-proposed{background:#fef3c7;color:#92400e}.bp-active{background:#dbeafe;color:#1e40af}.bp-live{background:#dcfce7;color:#166534}.bp-measured{background:#e0e7ff;color:#3730a3}.bp-abandoned{background:#f3f4f6;color:#6b7280}
+.bet-thesis{font-size:12px;color:var(--muted,#6b7280);margin:6px 0 8px;line-height:1.45}
+.bet-meta{font-size:11px;color:var(--muted,#6b7280);display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.bo-table{width:100%;border-collapse:collapse;font-size:12px}
+.bo-table th{text-align:left;font-size:10px;text-transform:uppercase;color:var(--muted,#6b7280);padding:4px 6px;border-bottom:1px solid var(--border,#e5e7eb)}
+.bo-table td{padding:6px;border-bottom:1px solid var(--border,#f3f4f6);vertical-align:top}
+.bo-edit{cursor:pointer;border-bottom:1px dashed #cbd5e1}
+.bo-stale{color:#b91c1c;font-weight:600}
+.bo-measured{color:#166534;font-weight:600}
+.q-card{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.q-text{font-size:13px;font-weight:500;margin-bottom:4px}
+.q-why{font-size:11px;color:#92400e;margin-bottom:8px}
+.q-row{display:flex;gap:6px}
+.q-input{flex:1;padding:6px 8px;border:1px solid #fde68a;border-radius:6px;font-size:12px}
+@media(max-width:640px){.bo-table{font-size:11px}.bet-title{min-width:120px}}
+</style>
 <nav class="tab-nav">
   <button class="tab-btn active" data-tab="today">Tasks</button>
   <button class="tab-btn" data-tab="delegated">Delegated</button>
   <button class="tab-btn" data-tab="completed">Completed</button>
   <button class="tab-btn" data-tab="decisions">Decisions</button>
+  <button class="tab-btn" data-tab="bets">Bets</button>
   <button class="tab-btn" data-tab="analytics">Analytics</button>
   <button class="tab-btn" data-tab="synthesis">Synthesis</button>
   <button class="tab-btn" data-tab="metrics">Metrics</button>
@@ -476,6 +498,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </section>
 
 <!-- ANALYTICS -->
+<!-- BETS -->
+<section class="tab-section" id="tab-bets">
+<div class="main-content">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <div style="font-size:15px;font-weight:600">Bets — customer behavior changes</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">Outputs = linked tasks · Outcomes = baseline → actual per metric · keep 5–10 open, not 50</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openBetModal()">+ New bet</button>
+  </div>
+  <div id="bets-questions"></div>
+  <div id="bets-body"><div class="task-loading">Loading…</div></div>
+</div>
+</section>
+
 <section class="tab-section" id="tab-analytics">
 <div class="main-content">
   <div id="analytics-cards" class="a-grid"><div class="task-loading" style="grid-column:1/-1">Loading analytics…</div></div>
@@ -657,6 +694,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 
 <!-- ADD/EDIT TASK MODAL -->
+<div class="modal-overlay" id="bet-modal">
+<div class="modal">
+  <div class="modal-title">New bet</div>
+  <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="b-title" placeholder="e.g. Khawalid helpdesk agent go-live"></div>
+  <div class="form-group"><label class="form-label">Thesis <span style="font-weight:400;color:var(--muted)">— who behaves differently, and how</span></label><textarea class="form-textarea" id="b-thesis" rows="2" placeholder="Tenants raise requests through the agent instead of calling the FM office"></textarea></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Customer</label><select class="form-select" id="b-customer"><option value="">—</option></select></div>
+    <div class="form-group"><label class="form-label">Workstream</label><select class="form-select" id="b-workstream"><option value="">—</option></select></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="b-status"><option value="proposed">Proposed</option><option value="active" selected>Active (building)</option><option value="live">Live (shipped)</option></select></div>
+    <div class="form-group"><label class="form-label">Go-live date</label><input class="form-input" id="b-golive" type="date"></div>
+  </div>
+  <div style="border-top:1px solid var(--border,#e5e7eb);margin:10px 0;padding-top:10px;font-size:12px;font-weight:600">First outcome metric (optional — GQM: goal → question → smallest number)</div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Metric</label><input class="form-input" id="b-metric" placeholder="e.g. Containment rate"></div>
+    <div class="form-group"><label class="form-label">Kind</label><select class="form-select" id="b-kind"><option value="lagging">Lagging (customer number)</option><option value="leading">Leading (e.g. eval pass)</option></select></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Baseline (the BEFORE)</label><input class="form-input" id="b-baseline" placeholder="40 req/wk manual, 4h to WO"></div>
+    <div class="form-group"><label class="form-label">Check date</label><input class="form-input" id="b-check" type="date"></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn" onclick="document.getElementById('bet-modal').classList.remove('open')">Cancel</button>
+    <button class="btn btn-primary" onclick="saveBet()">Save bet</button>
+  </div>
+</div>
+</div>
 <div class="modal-overlay" id="add-modal">
 <div class="modal">
   <div class="modal-title" id="add-modal-title">Add task</div>
@@ -684,6 +749,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="addSourceRow()">+ Add source</button>
   </div>
   <div class="form-group"><label class="form-label">Workstream</label><select class="form-select" id="f-workstream" onchange="handleInlineAdd(this,'workstream')"><option value="">—</option></select></div>
+  <div class="form-group"><label class="form-label">Bet <span style="font-weight:400;color:var(--muted)">— link if this task builds toward a customer behavior change</span></label><select class="form-select" id="f-bet"><option value="">—</option></select></div>
   <div class="form-group">
     <div class="deep-toggle" id="deep-toggle" onclick="toggleDeepWork()">
       <input type="checkbox" id="f-deep-work" style="display:none">
@@ -1836,7 +1902,7 @@ function openEditTask(id){
   document.getElementById('f-customer').value=t.customer||'';document.getElementById('f-assignee').value=t.assigned_to||'Me';
   document.getElementById('f-due').value=t.due_date||'';document.getElementById('f-awaiting').value=t.awaiting_since||'';
   document.getElementById('f-requester').value=t.requester||'';populateSources(t.source||'');
-  document.getElementById('f-workstream').value=t.workstream||'';const dw=t.is_deep_work||false;document.getElementById('f-deep-work').checked=dw;document.getElementById('deep-toggle').className='deep-toggle'+(dw?' is-deep':'');document.getElementById('deep-toggle-icon').textContent=dw?'✅':'⬜';
+  document.getElementById('f-workstream').value=t.workstream||'';populateBetSelect(t.bet_id||'');const dw=t.is_deep_work||false;document.getElementById('f-deep-work').checked=dw;document.getElementById('deep-toggle').className='deep-toggle'+(dw?' is-deep':'');document.getElementById('deep-toggle-icon').textContent=dw?'✅':'⬜';
   document.getElementById('f-waiting-on').value=t.waiting_on||'';
   toggleWaitingOnField();
   document.getElementById('add-modal').classList.add('open');
@@ -1845,7 +1911,7 @@ function closeAddModal(){document.getElementById('add-modal').classList.remove('
 async function saveTask(){
   const id=document.getElementById('f-id').value;const title=document.getElementById('f-title').value.trim();
   if(!title){alert('Title is required.');return;}
-  const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,waiting_on:document.getElementById('f-waiting-on').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
+  const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,waiting_on:document.getElementById('f-waiting-on').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,bet_id:document.getElementById('f-bet')?.value||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
   if(id){const{error}=await sb.from('tasks').update(data).eq('id',id);if(error){alert('Save failed — nothing was changed: '+error.message);return;}const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};}
   else{data.status='open';data.created_at=new Date().toISOString();const{data:nt,error}=await sb.from('tasks').insert(data).select().single();if(error){alert('Save failed — task was NOT created: '+error.message);return;}if(nt)tasks.unshift(nt);}
   closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();
@@ -2232,6 +2298,136 @@ async function saveNewMetric() {
   closeAddMetric();
 }
 
+// ── BETS MODULE ───────────────────────────────────────
+let betsData=[],betOutcomesData=[],betQs=[],betTaskCounts={},_betsLoaded=false;
+async function fetchBets(){
+  const[b,o,q,t]=await Promise.all([
+    sb.from('bets').select('*'),
+    sb.from('bet_outcomes').select('*').order('check_date',{ascending:true}),
+    sb.from('agent_questions').select('*').in('status',['open','answered']).order('created_at'),
+    sb.from('tasks').select('id,bet_id,status').not('bet_id','is',null)
+  ]);
+  betsData=b.data||[];betOutcomesData=o.data||[];betQs=q.data||[];
+  betTaskCounts={};(t.data||[]).forEach(x=>{betTaskCounts[x.bet_id]=(betTaskCounts[x.bet_id]||0)+1});
+  _betsLoaded=true;
+}
+async function loadBets(){await fetchBets();renderBets();populateBetSelect();}
+const BET_ORDER={live:0,active:1,proposed:2,measured:3,abandoned:4};
+function renderBets(){
+  const qEl=document.getElementById('bets-questions');
+  const openQs=betQs.filter(q=>q.status==='open');
+  qEl.innerHTML=openQs.length?openQs.map(q=>{
+    const b=betsData.find(x=>x.id===q.bet_id);
+    return `<div class="q-card"><div class="q-text">❓ ${esc(q.question)}</div><div class="q-why">${b?'🎯 '+esc(b.title)+' · ':''}${esc(q.why||'')}</div><div class="q-row"><input class="q-input" id="q-ans-${q.id}" placeholder="Answer — next weekly run applies it…" onkeydown="if(event.key==='Enter')answerBetQ('${q.id}')"><button class="btn btn-sm btn-primary" onclick="answerBetQ('${q.id}')">Answer</button><button class="btn btn-sm" onclick="dismissBetQ('${q.id}')">Dismiss</button></div></div>`;
+  }).join(''):'';
+  const body=document.getElementById('bets-body');
+  if(!betsData.length){body.innerHTML='<div class="m-empty">No bets yet. A bet = one customer behavior change with a metric.</div>';return;}
+  const today=new Date().toISOString().slice(0,10);
+  body.innerHTML=[...betsData].sort((a,b)=>(BET_ORDER[a.status]??9)-(BET_ORDER[b.status]??9)).map(b=>{
+    const outs=betOutcomesData.filter(o=>o.bet_id===b.id);
+    const rows=outs.map(o=>{
+      const stale=o.status!=='measured'&&o.check_date&&o.check_date<today;
+      const st=o.status==='measured'?'<span class="bo-measured">measured</span>':(stale?'<span class="bo-stale">STALE — measure now</span>':esc(o.status));
+      return `<tr><td><b>${esc(o.metric_name)}</b><div style="font-size:10px;color:var(--muted)">${esc(o.kind)}</div></td>
+      <td class="bo-edit" onclick="editOutcome('${o.id}','baseline')" title="Click to edit">${esc(o.baseline||'— set baseline')}</td>
+      <td class="bo-edit" onclick="editOutcome('${o.id}','target')" title="Click to edit">${esc(o.target||'—')}</td>
+      <td class="bo-edit" onclick="markMeasured('${o.id}')" title="Click to record actual">${esc(o.actual||'— record actual')}</td>
+      <td>${esc(o.check_date||'—')}</td><td>${st}</td></tr>`;
+    }).join('');
+    const golive=b.go_live_date?('🚀 '+b.go_live_date):'no go-live yet';
+    const acts=[];
+    if(b.status==='proposed')acts.push(`<button class="btn btn-sm" onclick="setBetStatus('${b.id}','active')">Confirm → Active</button>`);
+    if(b.status==='active')acts.push(`<button class="btn btn-sm btn-primary" onclick="setBetStatus('${b.id}','live')">Mark LIVE</button>`);
+    if(['proposed','active','live'].includes(b.status))acts.push(`<button class="btn btn-sm" onclick="addOutcomeToBet('${b.id}')">+ Outcome</button>`,`<button class="btn btn-sm btn-danger" onclick="setBetStatus('${b.id}','abandoned')">Abandon</button>`);
+    return `<div class="bet-card"><div class="bet-head"><span class="bet-pill bp-${esc(b.status)}">${esc(b.status)}</span><span class="bet-title">${esc(b.title)}</span>${acts.join('')}</div>
+    <div class="bet-thesis">${esc(b.thesis||'')}</div>
+    <div class="bet-meta"><span>${esc(b.customer||'—')}</span><span>${esc(b.workstream||'—')}</span><span>${golive}</span><span>📋 ${betTaskCounts[b.id]||0} linked tasks</span></div>
+    ${outs.length?`<table class="bo-table"><tr><th>Outcome</th><th>Baseline (before)</th><th>Target</th><th>Actual (after)</th><th>Check</th><th>Status</th></tr>${rows}</table>`:'<div style="font-size:12px;color:var(--muted)">No outcomes defined — add one.</div>'}</div>`;
+  }).join('');
+}
+async function answerBetQ(id){
+  const inp=document.getElementById('q-ans-'+id);const val=(inp?.value||'').trim();
+  if(!val){alert('Type the answer first.');return;}
+  const{error}=await sb.from('agent_questions').update({status:'answered',answer:val,answered_at:new Date().toISOString()}).eq('id',id);
+  if(error){alert('Save failed: '+error.message);return;}
+  loadBets();
+}
+async function dismissBetQ(id){
+  const{error}=await sb.from('agent_questions').update({status:'dismissed'}).eq('id',id);
+  if(error){alert('Failed: '+error.message);return;}
+  loadBets();
+}
+async function editOutcome(id,field){
+  const o=betOutcomesData.find(x=>x.id===id);if(!o)return;
+  const label={baseline:'Baseline (the BEFORE — number + context)',target:'Target'}[field]||field;
+  const val=prompt(label+':',o[field]||'');if(val===null)return;
+  const upd={[field]:val.trim()||null,updated_at:new Date().toISOString()};
+  if(field==='baseline'&&val.trim())upd.baseline_captured_at=new Date().toISOString().slice(0,10);
+  const{error}=await sb.from('bet_outcomes').update(upd).eq('id',id);
+  if(error){alert('Save failed: '+error.message);return;}
+  loadBets();
+}
+async function markMeasured(id){
+  const o=betOutcomesData.find(x=>x.id===id);if(!o)return;
+  if(!o.baseline&&!confirm('No baseline set — an actual without a before proves nothing. Record anyway?'))return;
+  const val=prompt('Actual (before → after — a real delta, not "1"):',o.actual||'');
+  if(val===null)return;
+  const t=val.trim();
+  if(!t||/^[01]$/.test(t)||t.length<4){alert('Binary/empty outcomes are banned. Give a before → after or a named concrete result.');return;}
+  const{error}=await sb.from('bet_outcomes').update({actual:t,measured_at:new Date().toISOString().slice(0,10),status:'measured',updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){alert('Save failed: '+error.message);return;}
+  loadBets();
+}
+async function setBetStatus(id,st){
+  const b=betsData.find(x=>x.id===id);if(!b)return;
+  if(st==='abandoned'){const why=prompt('Why abandon this bet?');if(why===null)return;
+    await sb.from('bets').update({status:'abandoned',abandoned_reason:why||null,updated_at:new Date().toISOString()}).eq('id',id);loadBets();return;}
+  const upd={status:st,updated_at:new Date().toISOString()};
+  if(st==='live'&&!b.go_live_date)upd.go_live_date=new Date().toISOString().slice(0,10);
+  const{error}=await sb.from('bets').update(upd).eq('id',id);
+  if(error){alert('Failed: '+error.message);return;}
+  if(st==='live'){
+    const due=new Date(Date.now()+14*864e5).toISOString().slice(0,10);
+    await sb.from('tasks').insert({title:'Outcome check: '+b.title,description:'T+2w outcome check — pull the actuals vs baseline for this bet and record them in the Bets tab.',type:'investigate',priority:'high',status:'open',assigned_to:'Me',customer:b.customer,workstream:b.workstream,bet_id:b.id,bet_role:'outcome_check',due_date:due,is_deep_work:false,created_at:new Date().toISOString()});
+  }
+  loadBets();
+}
+async function addOutcomeToBet(betId){
+  const m=prompt('Metric name (GQM: the smallest number that answers "did the behavior change?"):');
+  if(!m||!m.trim())return;
+  const base=prompt('Baseline (the BEFORE — leave blank if unknown):')||'';
+  const chk=prompt('Check date (YYYY-MM-DD, when to measure):')||null;
+  const{error}=await sb.from('bet_outcomes').insert({bet_id:betId,metric_name:m.trim(),kind:'lagging',baseline:base.trim()||null,baseline_captured_at:base.trim()?new Date().toISOString().slice(0,10):null,check_date:chk,status:'pending'});
+  if(error){alert('Failed: '+error.message);return;}
+  loadBets();
+}
+function openBetModal(){
+  const cSel=document.getElementById('b-customer'),wSel=document.getElementById('b-workstream');
+  cSel.innerHTML='<option value="">—</option>'+customers.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  wSel.innerHTML='<option value="">—</option>'+workstreams.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
+  ['b-title','b-thesis','b-baseline','b-metric','b-golive','b-check'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('bet-modal').classList.add('open');
+}
+async function saveBet(){
+  const title=document.getElementById('b-title').value.trim();
+  if(!title){alert('Title required.');return;}
+  const payload={title,thesis:document.getElementById('b-thesis').value.trim()||null,customer:document.getElementById('b-customer').value||null,workstream:document.getElementById('b-workstream').value||null,status:document.getElementById('b-status').value,created_by:'sudharsan',go_live_date:document.getElementById('b-golive').value||null};
+  const{data,error}=await sb.from('bets').insert(payload).select().single();
+  if(error){alert('Save failed: '+error.message);return;}
+  const m=document.getElementById('b-metric').value.trim();
+  if(m){await sb.from('bet_outcomes').insert({bet_id:data.id,metric_name:m,kind:document.getElementById('b-kind').value,baseline:document.getElementById('b-baseline').value.trim()||null,baseline_captured_at:document.getElementById('b-baseline').value.trim()?new Date().toISOString().slice(0,10):null,check_date:document.getElementById('b-check').value||null,status:'pending'});}
+  document.getElementById('bet-modal').classList.remove('open');
+  loadBets();
+}
+async function populateBetSelect(selected){
+  const el=document.getElementById('f-bet');if(!el)return;
+  if(!_betsLoaded)await fetchBets();
+  const cur=selected!==undefined?selected:el.value;
+  el.innerHTML='<option value="">—</option>'+betsData.filter(b=>['proposed','active','live'].includes(b.status)).map(b=>`<option value="${b.id}">${esc(b.title)} (${esc(b.status)})</option>`).join('');
+  el.value=cur||'';
+}
+fetchBets().then(()=>populateBetSelect());
+
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',function(){
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -2240,6 +2436,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(this.dataset.tab==='completed')renderCompleted();
     if(this.dataset.tab==='delegated')renderDelegated();
     if(this.dataset.tab==='decisions')renderDecisionLog();
+    if(this.dataset.tab==='bets')loadBets();
     if(this.dataset.tab==='analytics')loadAnalytics();
     if(this.dataset.tab==='synthesis'){synthMonthMode=false;document.getElementById('synth-toggle-btn').textContent='Month view';document.getElementById('synth-week-view').classList.remove('hidden');document.getElementById('synth-month-view').classList.add('hidden');loadSynthesisWeek();}
     if(this.dataset.tab==='settings')renderSettings();
