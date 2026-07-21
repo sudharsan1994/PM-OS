@@ -345,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.96 · 2026-07-20</div>
+  <div class="app-version">v1.97 · 2026-07-20</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -757,6 +757,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <span>🧠 This is deep / focused work</span>
     </div>
   </div>
+  <div class="form-group">
+    <div class="deep-toggle" id="outcome-req-toggle" onclick="toggleOutcomeReq()">
+      <input type="checkbox" id="f-outcome-req" style="display:none">
+      <span id="outcome-req-icon">⬜</span>
+      <span>📊 Requires an outcome when done <span style="font-weight:400;color:var(--muted)">— could move a customer or a North Star</span></span>
+    </div>
+  </div>
   <input type="hidden" id="f-id">
   <div class="modal-actions">
     <button class="btn btn-danger btn-sm hidden" id="delete-btn" onclick="deleteTask()">Delete</button>
@@ -776,7 +783,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </div>
   <!-- UNIFIED OUTCOME SECTION (all task types) -->
   <div class="dec-capture" id="outcome-metric-section">
-    <div class="dec-capture-lbl">📊 Outcome — what changed <span style="color:var(--danger)">*</span> <span style="font-weight:400;color:var(--muted)">— note the result; link a workstream metric only if one moved</span></div>
+    <div class="dec-capture-lbl">📊 Outcome — what changed <span id="outcome-req-star" style="color:var(--danger)">*</span><span id="outcome-opt-hint" style="font-weight:400;color:var(--muted);display:none">(optional for this task)</span> <span style="font-weight:400;color:var(--muted)">— note the result; link a workstream metric only if one moved</span></div>
     <div id="outcome-rows-list"></div>
     <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
       <button type="button" class="btn btn-sm" onclick="addOutcomeRow()">+ Add outcome</button>
@@ -807,7 +814,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </div>
   <!-- IMPACT PICKER (primary quality axis) -->
   <div class="form-group" id="impact-group" style="margin-top:14px">
-    <label class="form-label">Impact <span style="color:var(--danger)">*</span> <span style="font-weight:400;color:var(--muted)">— how much did this matter?</span></label>
+    <label class="form-label">Impact <span id="impact-req-star" style="color:var(--danger)">*</span><span id="impact-opt-hint" style="font-weight:400;color:var(--muted);display:none">(optional for this task)</span> <span style="font-weight:400;color:var(--muted)">— how much did this matter?</span></label>
     <div class="sat-picker">
       <button type="button" class="sat-btn impact-btn" id="impact-low" onclick="setImpact('low')" title="Low — routine / keeps lights on">Low</button>
       <button type="button" class="sat-btn impact-btn" id="impact-medium" onclick="setImpact('medium')" title="Medium — meaningful progress">Medium</button>
@@ -1888,7 +1895,7 @@ function toggleWaitingOnField(){
 function openAddTask(){
   document.getElementById('add-modal-title').textContent='Add task';document.getElementById('f-id').value='';document.getElementById('delete-btn').classList.add('hidden');
   ['f-title','f-desc','f-why','f-action','f-requester','f-workstream','f-waiting-on'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});populateSources('');
-  document.getElementById('f-priority').value='medium';document.getElementById('f-type').value='';document.getElementById('f-customer').value='';document.getElementById('f-deep-work').checked=false;document.getElementById('deep-toggle').className='deep-toggle';document.getElementById('deep-toggle-icon').textContent='⬜';
+  document.getElementById('f-priority').value='medium';document.getElementById('f-type').value='';document.getElementById('f-customer').value='';document.getElementById('f-deep-work').checked=false;document.getElementById('deep-toggle').className='deep-toggle';document.getElementById('deep-toggle-icon').textContent='⬜';document.getElementById('f-outcome-req').checked=false;document.getElementById('outcome-req-toggle').className='deep-toggle';document.getElementById('outcome-req-icon').textContent='⬜';
   document.getElementById('f-assignee').value='Me';document.getElementById('f-due').value='';document.getElementById('f-awaiting').value='';
   toggleWaitingOnField();
   document.getElementById('add-modal').classList.add('open');
@@ -1902,7 +1909,7 @@ function openEditTask(id){
   document.getElementById('f-customer').value=t.customer||'';document.getElementById('f-assignee').value=t.assigned_to||'Me';
   document.getElementById('f-due').value=t.due_date||'';document.getElementById('f-awaiting').value=t.awaiting_since||'';
   document.getElementById('f-requester').value=t.requester||'';populateSources(t.source||'');
-  document.getElementById('f-workstream').value=t.workstream||'';populateBetSelect(t.bet_id||'');const dw=t.is_deep_work||false;document.getElementById('f-deep-work').checked=dw;document.getElementById('deep-toggle').className='deep-toggle'+(dw?' is-deep':'');document.getElementById('deep-toggle-icon').textContent=dw?'✅':'⬜';
+  document.getElementById('f-workstream').value=t.workstream||'';populateBetSelect(t.bet_id||'');const dw=t.is_deep_work||false;document.getElementById('f-deep-work').checked=dw;document.getElementById('deep-toggle').className='deep-toggle'+(dw?' is-deep':'');document.getElementById('deep-toggle-icon').textContent=dw?'✅':'⬜';const orq=(t.outcome_required===true)?true:(t.outcome_required===false?false:dw);document.getElementById('f-outcome-req').checked=orq;document.getElementById('outcome-req-toggle').className='deep-toggle'+(orq?' is-deep':'');document.getElementById('outcome-req-icon').textContent=orq?'✅':'⬜';
   document.getElementById('f-waiting-on').value=t.waiting_on||'';
   toggleWaitingOnField();
   document.getElementById('add-modal').classList.add('open');
@@ -1911,7 +1918,7 @@ function closeAddModal(){document.getElementById('add-modal').classList.remove('
 async function saveTask(){
   const id=document.getElementById('f-id').value;const title=document.getElementById('f-title').value.trim();
   if(!title){alert('Title is required.');return;}
-  const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,waiting_on:document.getElementById('f-waiting-on').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,bet_id:document.getElementById('f-bet')?.value||null,is_deep_work:document.getElementById('f-deep-work').checked,updated_at:new Date().toISOString()};
+  const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,waiting_on:document.getElementById('f-waiting-on').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,bet_id:document.getElementById('f-bet')?.value||null,is_deep_work:document.getElementById('f-deep-work').checked,outcome_required:document.getElementById('f-outcome-req').checked,updated_at:new Date().toISOString()};
   if(id){const{error}=await sb.from('tasks').update(data).eq('id',id);if(error){alert('Save failed — nothing was changed: '+error.message);return;}const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};}
   else{data.status='open';data.created_at=new Date().toISOString();const{data:nt,error}=await sb.from('tasks').insert(data).select().single();if(error){alert('Save failed — task was NOT created: '+error.message);return;}if(nt)tasks.unshift(nt);}
   closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();
@@ -1968,8 +1975,13 @@ function openCompleteModal(id){
     document.getElementById('complete-modal-title').textContent='Complete & log decision';
   } else document.getElementById('complete-modal-title').textContent='Mark task complete';
   populateOutcomeMetricsInModal(t.workstream);
+  // Is an outcome mandatory for this task? explicit flag wins; else fall back to deep-work.
+  _completeOutcomeRequired = (t.outcome_required===true) ? true : (t.outcome_required===false ? false : !!t.is_deep_work);
+  ['outcome-req-star','impact-req-star'].forEach(x=>{const el=document.getElementById(x);if(el)el.style.display=_completeOutcomeRequired?'':'none';});
+  ['outcome-opt-hint','impact-opt-hint'].forEach(x=>{const el=document.getElementById(x);if(el)el.style.display=_completeOutcomeRequired?'none':'';});
   document.getElementById('complete-modal').classList.add('open');
 }
+let _completeOutcomeRequired=true;
 let _outcomeModalMetrics=[];
 function populateOutcomeMetricsInModal(workstream){
   const list=document.getElementById('outcome-rows-list');if(!list)return;
@@ -2012,8 +2024,10 @@ async function saveComplete(){
   const tt=document.getElementById('complete-task-type').value;
   const impact=document.getElementById('complete-impact').value;
   const{metricRows,notesText}=getOutcomeData();
-  if(!metricRows.length&&!notesText){showCompleteError('Outcome is required. Note what changed / the result — not just "done". If nothing changed and this wasn\'t really your work, close it as Noise or Delegated instead.','outcome-rows-list');return;}
-  if(!impact){showCompleteError('Pick an impact level (Low / Medium / High) before marking done.','impact-group');return;}
+  if(_completeOutcomeRequired){
+    if(!metricRows.length&&!notesText){showCompleteError('Outcome is required for this task — it could move a customer or a North Star. Note what changed / the result, not just "done". If nothing changed and this wasn\'t really your work, close it as Noise or Delegated instead.','outcome-rows-list');return;}
+    if(!impact){showCompleteError('Pick an impact level (Low / Medium / High) before marking done.','impact-group');return;}
+  }
   document.getElementById('complete-error').style.display='none';
   const ws=document.getElementById('complete-workstream').value||null;
   const cust=document.getElementById('complete-customer').value||null;
@@ -2529,6 +2543,12 @@ function toggleDeepWork(){
   cb.checked=!cb.checked;
   tog.classList.toggle('is-deep',cb.checked);
   icon.textContent=cb.checked?'✅':'⬜';
+}
+function toggleOutcomeReq(){
+  const cb=document.getElementById('f-outcome-req');
+  cb.checked=!cb.checked;
+  document.getElementById('outcome-req-toggle').classList.toggle('is-deep',cb.checked);
+  document.getElementById('outcome-req-icon').textContent=cb.checked?'✅':'⬜';
 }
 
 // ── COPY TASK BRIEF ───────────────────────────────────
