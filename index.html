@@ -345,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.97 · 2026-07-20</div>
+  <div class="app-version">v1.98 · 2026-07-20</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -783,12 +783,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </div>
   <!-- UNIFIED OUTCOME SECTION (all task types) -->
   <div class="dec-capture" id="outcome-metric-section">
-    <div class="dec-capture-lbl">📊 Outcome — what changed <span id="outcome-req-star" style="color:var(--danger)">*</span><span id="outcome-opt-hint" style="font-weight:400;color:var(--muted);display:none">(optional for this task)</span> <span style="font-weight:400;color:var(--muted)">— note the result; link a workstream metric only if one moved</span></div>
-    <div id="outcome-rows-list"></div>
-    <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
-      <button type="button" class="btn btn-sm" onclick="addOutcomeRow()">+ Add outcome</button>
-      <button type="button" class="btn btn-sm" onclick="addNewMetric()" title="Create a new metric for this workstream">+ New metric for this workstream</button>
+    <div class="dec-capture-lbl">📊 Outcome — what changed <span id="outcome-req-star" style="color:var(--danger)">*</span><span id="outcome-opt-hint" style="font-weight:400;color:var(--muted);display:none">(optional for this task)</span> <span style="font-weight:400;color:var(--muted)">— note the result / what shipped. The metric, baseline &amp; target live in the Bet.</span></div>
+    <textarea class="form-textarea" id="complete-outcome-note" rows="2" placeholder="What changed / the result — e.g. 'Shipped dispatch confidence-score change to Berkeley; live from today.'"></textarea>
+    <div class="form-group" style="margin-top:10px">
+      <label class="form-label">Bet <span style="font-weight:400;color:var(--muted)">— link if this advances a customer-behaviour bet (optional)</span></label>
+      <select class="form-select" id="complete-bet" onchange="updateCompleteBetNudge()"><option value="">—</option></select>
     </div>
+    <div id="complete-bet-nudge" style="display:none;font-size:11.5px;border-radius:6px;padding:7px 10px;margin-top:8px"></div>
   </div>
   <!-- ARTIFACTS (all task types, optional) -->
   <div class="dec-capture" id="create-capture-section" style="margin-top:14px">
@@ -848,7 +849,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="modal-title">Delegate task</div>
   <div class="form-row">
     <div class="form-group"><label class="form-label">Channel</label><select class="form-select" id="d-channel" onchange="onDelegateChannelChange()"><option value="cowork">Claude Cowork</option><option value="teams">Teams</option></select></div>
-    <div class="form-group"><label class="form-label">To <span style="font-weight:400;color:var(--muted)">— type any colleague's name</span></label><input class="form-input" id="d-to" list="d-to-list" placeholder="Start typing a name…" autocomplete="off"><datalist id="d-to-list"></datalist></div>
+    <div class="form-group" id="d-to-group"><label class="form-label">To <span style="font-weight:400;color:var(--muted)">— type any colleague's name</span></label><input class="form-input" id="d-to" list="d-to-list" placeholder="Start typing a name…" autocomplete="off"><datalist id="d-to-list"></datalist></div>
   </div>
   <div class="form-group"><label class="form-label">Message <span style="font-weight:400;color:var(--muted)">— auto-composed from the task, edit as needed</span></label><textarea class="form-textarea" id="d-context" rows="11"></textarea></div>
   <div id="d-send-note" style="font-size:11px;color:var(--muted);margin-top:-4px"></div>
@@ -1955,7 +1956,7 @@ function openCompleteModal(id){
   document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
   document.getElementById('complete-impact').value='';['impact-low','impact-medium','impact-high'].forEach(x=>document.getElementById(x)?.classList.remove('sat-active'));
   const ceErr=document.getElementById('complete-error');ceErr.style.display='none';ceErr.textContent='';
-  document.getElementById('outcome-rows-list').style.outline='';document.getElementById('impact-group').style.outline='';
+  document.getElementById('complete-outcome-note').style.outline='';document.getElementById('impact-group').style.outline='';
   const wsSel=document.getElementById('complete-workstream');
   wsSel.innerHTML='<option value="">— none —</option>'+workstreams.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
   if(t.workstream&&!workstreams.some(w=>w.name===t.workstream))wsSel.insertAdjacentHTML('beforeend',`<option value="${esc(t.workstream)}">${esc(t.workstream)}</option>`);
@@ -1974,7 +1975,7 @@ function openCompleteModal(id){
     renderChips('dc-participants',[]);
     document.getElementById('complete-modal-title').textContent='Complete & log decision';
   } else document.getElementById('complete-modal-title').textContent='Mark task complete';
-  populateOutcomeMetricsInModal(t.workstream);
+  populateCompleteOutcome(t);
   // Is an outcome mandatory for this task? explicit flag wins; else fall back to deep-work.
   _completeOutcomeRequired = (t.outcome_required===true) ? true : (t.outcome_required===false ? false : !!t.is_deep_work);
   ['outcome-req-star','impact-req-star'].forEach(x=>{const el=document.getElementById(x);if(el)el.style.display=_completeOutcomeRequired?'':'none';});
@@ -1983,12 +1984,30 @@ function openCompleteModal(id){
 }
 let _completeOutcomeRequired=true;
 let _outcomeModalMetrics=[];
+async function populateCompleteOutcome(t){
+  document.getElementById('complete-outcome-note').value='';
+  const sel=document.getElementById('complete-bet');if(!sel)return;
+  if(!_betsLoaded)await fetchBets();
+  const open=betsData.filter(b=>['proposed','active','live'].includes(b.status));
+  sel.innerHTML='<option value="">—</option>'+open.map(b=>`<option value="${b.id}">${esc(b.title)} (${esc(b.status)})</option>`).join('');
+  sel.value=t.bet_id||'';
+  updateCompleteBetNudge();
+}
+function updateCompleteBetNudge(){
+  const sel=document.getElementById('complete-bet');const nudge=document.getElementById('complete-bet-nudge');
+  if(!sel||!nudge)return;
+  const betId=sel.value;
+  if(!betId){nudge.style.display='none';return;}
+  const outs=betOutcomesData.filter(o=>o.bet_id===betId);
+  const noBase=outs.filter(o=>!o.baseline);
+  if(!outs.length){nudge.style.background='#FEF3C7';nudge.style.color='#92400E';nudge.innerHTML='⚠ This bet has no metric yet — set its leading/lagging metric, baseline &amp; target in the <b>Bets</b> tab.';}
+  else if(noBase.length){nudge.style.background='#FEF3C7';nudge.style.color='#92400E';nudge.innerHTML='⚠ '+noBase.length+' metric(s) on this bet have no baseline — set it in the <b>Bets</b> tab (an actual without a before proves nothing).';}
+  else{nudge.style.background='#EEF2FF';nudge.style.color='#4338CA';nudge.innerHTML='📊 Metric, baseline &amp; target for this bet live in the <b>Bets</b> tab. The actual is filled at the outcome-check.';}
+  nudge.style.display='block';
+}
+// Legacy — kept for compatibility; no longer used by the completion modal.
 function populateOutcomeMetricsInModal(workstream){
-  const list=document.getElementById('outcome-rows-list');if(!list)return;
-  list.innerHTML='';
-  // Only this workstream's metrics — never fall back to every workstream's metrics
   _outcomeModalMetrics=workstream?outcomeMetrics.filter(m=>m.workstream===workstream):[];
-  addOutcomeRow(); // always one row, so a note can be captured even with no metric
 }
 function addOutcomeRow(){
   const list=document.getElementById('outcome-rows-list');if(!list)return;
@@ -2002,20 +2021,13 @@ function addOutcomeRow(){
 }
 // Returns {metricRows:[{metric_id,new_value,note}], notesText} — note-only rows are allowed
 function getOutcomeData(){
-  const metricRows=[],notes=[];
-  [...document.querySelectorAll('.outcome-row')].forEach(row=>{
-    const metricId=row.querySelector('.outcome-metric-sel').value;
-    const val=row.querySelector('.outcome-val-input').value;
-    const note=row.querySelector('.outcome-note-input').value.trim();
-    if(metricId&&val!=='')metricRows.push({metric_id:metricId,new_value:parseFloat(val),note:note||null});
-    if(note)notes.push(note);
-  });
-  return{metricRows,notesText:notes.join(' • ')||null};
+  const note=document.getElementById('complete-outcome-note').value.trim();
+  return{metricRows:[],notesText:note||null};
 }
 function closeCompleteModal(){document.getElementById('complete-modal').classList.remove('open');}
 function showCompleteError(msg,highlightId){
   const el=document.getElementById('complete-error');el.textContent='⚠ '+msg;el.style.display='block';
-  document.getElementById('outcome-rows-list').style.outline='';document.getElementById('impact-group').style.outline='';
+  document.getElementById('complete-outcome-note').style.outline='';document.getElementById('impact-group').style.outline='';
   if(highlightId)document.getElementById(highlightId).style.outline='2px solid var(--danger)';
   el.scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -2025,7 +2037,7 @@ async function saveComplete(){
   const impact=document.getElementById('complete-impact').value;
   const{metricRows,notesText}=getOutcomeData();
   if(_completeOutcomeRequired){
-    if(!metricRows.length&&!notesText){showCompleteError('Outcome is required for this task — it could move a customer or a North Star. Note what changed / the result, not just "done". If nothing changed and this wasn\'t really your work, close it as Noise or Delegated instead.','outcome-rows-list');return;}
+    if(!metricRows.length&&!notesText){showCompleteError('Outcome is required for this task — it could move a customer or a North Star. Note what changed / the result, not just "done". If nothing changed and this wasn\'t really your work, close it as Noise or Delegated instead.','complete-outcome-note');return;}
     if(!impact){showCompleteError('Pick an impact level (Low / Medium / High) before marking done.','impact-group');return;}
   }
   document.getElementById('complete-error').style.display='none';
@@ -2033,14 +2045,14 @@ async function saveComplete(){
   const cust=document.getElementById('complete-customer').value||null;
   // completion_remarks = the note(s); if only a metric moved with no note, summarise it
   let remarks=notesText;
-  if(!remarks&&metricRows.length){remarks=metricRows.map(r=>{const md=_outcomeModalMetrics.find(x=>x.id===r.metric_id);return`${md?md.metric_name:'metric'} → ${r.new_value}`;}).join('; ');}
+  const betId=document.getElementById('complete-bet').value||null;
   const artifactLink=getArtifactLinks(); // artifacts allowed for every task type
   let decData=null;
   if(tt==='decide'){
     const dec=document.getElementById('dc-decision').value.trim();
     if(dec){decData={decision:dec,why:document.getElementById('dc-why').value.trim()||null,outcome:document.getElementById('dc-outcome').value.trim()||null,status:document.getElementById('dc-status').value,date:document.getElementById('dc-date').value||TODAY,owner:document.getElementById('dc-owner').value.trim()||'Sudharsan',participants:getChips('dc-participants')||null,workstream:ws,customer:cust,task_id:id};}
   }
-  await completeTask(id,remarks,decData,artifactLink,metricRows,{impact,workstream:ws,customer:cust});
+  await completeTask(id,remarks,decData,artifactLink,metricRows,{impact,workstream:ws,customer:cust,bet_id:betId});
 }
 async function completeTask(id,remarks,decData,artifactLink,outcomeRows,extra){
   extra=extra||{};
@@ -2049,6 +2061,7 @@ async function completeTask(id,remarks,decData,artifactLink,outcomeRows,extra){
   if(extra.impact)upd.impact=extra.impact;
   if(extra.workstream!==undefined)upd.workstream=extra.workstream;
   if(extra.customer!==undefined)upd.customer=extra.customer;
+  if(extra.bet_id)upd.bet_id=extra.bet_id;
   const sat=parseInt(document.getElementById('complete-satisfaction').value||'0');if(sat>0)upd.satisfaction=sat;
   const{error:completeErr}=await sb.from('tasks').update(upd).eq('id',id);
   if(completeErr){
@@ -2108,8 +2121,10 @@ function buildDelegationMessage(t){
 function onDelegateChannelChange(){
   const ch=document.getElementById('d-channel').value;
   const btn=document.getElementById('d-approve-btn');const note=document.getElementById('d-send-note');
-  if(ch==='teams'){btn.textContent='Send via Teams';note.textContent='Sends this message to the named person on Teams. If Teams isn’t connected yet, it copies to clipboard instead.';}
-  else{btn.textContent='Approve & copy';note.textContent='Copies the hand-off message to your clipboard.';}
+  const toGroup=document.getElementById('d-to-group');
+  if(ch==='teams'){toGroup.style.display='';btn.textContent='Send via Teams';note.textContent='Sends this message to the named person on Teams. If Teams isn’t connected yet, it copies to clipboard instead.';}
+  else if(ch==='cowork'){toGroup.style.display='none';btn.textContent='Queue for Claude ⚡';note.textContent='Queues this for the PM-OS executor (runs every 30 min, 11:30–21:00 IST). Claude does it as you and posts the result back on the task — no person needed.';}
+  else{toGroup.style.display='';btn.textContent='Approve & copy';note.textContent='Copies the hand-off message to your clipboard.';}
 }
 function openDelegateModal(id){
   const t=findTask(id);
@@ -2151,9 +2166,19 @@ async function sendTeamsMessage(name,message){
 }
 async function approveDelegation(){
   const id=document.getElementById('d-id').value;const ctx=document.getElementById('d-context').value;const t=findTask(id);
+  const ch=document.getElementById('d-channel').value;const btn=document.getElementById('d-approve-btn');
+  if(ch==='cowork'){
+    // Delegate to Claude Cowork → queue for the PM-OS executor. No person required; stays visible in the list.
+    const upd={claude_status:'queued',claude_scope:ctx,claude_result:null,claude_error:null,claude_run_at:null,assigned_to:'Claude Cowork',delegation_channel:'cowork',delegation_context:ctx,updated_at:new Date().toISOString()};
+    const{error}=await sb.from('tasks').update(upd).eq('id',id);
+    if(error){alert('Could not queue for Claude: '+error.message);return;}
+    const i=tasks.findIndex(x=>x.id===id);if(i>=0)Object.assign(tasks[i],upd);
+    closeDelegateModal();renderTodayTasks();renderAllTasks();renderFocusSlots();
+    alert('Queued for Claude Cowork ⚡ — the executor will pick it up on its next pass (every 30 min, 11:30–21:00 IST) and post the result back on this task.');
+    return;
+  }
   const to=document.getElementById('d-to').value.trim()||null;
   if(!to){alert('Enter who you are delegating this to — the task will be marked “Delegated → that person”.');return;}
-  const ch=document.getElementById('d-channel').value;const btn=document.getElementById('d-approve-btn');
   let sentVia='clipboard';
   if(ch==='teams'){
     const orig=btn.textContent;btn.disabled=true;btn.textContent='Sending…';
