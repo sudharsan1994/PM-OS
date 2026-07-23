@@ -345,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.98 · 2026-07-20</div>
+  <div class="app-version">v1.99 · 2026-07-23</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -368,7 +368,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .q-why{font-size:11px;color:#92400e;margin-bottom:8px}
 .q-row{display:flex;gap:6px}
 .q-input{flex:1;padding:6px 8px;border:1px solid #fde68a;border-radius:6px;font-size:12px}
-@media(max-width:640px){.bo-table{font-size:11px}.bet-title{min-width:120px}}
+/* outcome cards */
+.bo-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.bo-item{border:1px solid var(--border,#e5e7eb);border-radius:10px;padding:12px 14px;background:var(--surface2,#f8fafc)}
+.bo-item.lead{border-left:4px solid #7c3aed}
+.bo-item.lag{border-left:4px solid #0369a1}
+.bo-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.bo-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+.bo-badge.lead{background:#ede9fe;color:#6d28d9}
+.bo-badge.lag{background:#e0f2fe;color:#075985}
+.bo-badge-sub{font-size:11px;color:var(--muted,#6b7280);font-style:italic}
+.bo-name{font-weight:600;font-size:13.5px;line-height:1.35;margin-bottom:8px}
+.bo-strip{display:flex;align-items:stretch;background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:8px;overflow:hidden;margin-bottom:8px}
+.bo-cell{flex:1;padding:7px 10px;min-width:0}
+.bo-cell+.bo-cell{border-left:1px solid var(--border,#e5e7eb)}
+.bo-cell .k{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted,#9ca3af);font-weight:600;display:block;margin-bottom:2px}
+.bo-cell .v{font-size:12px;color:var(--text,#111);word-break:break-word}
+.bo-cell .v.empty{color:#cbd5e1}
+.bo-arrow{display:flex;align-items:center;color:#cbd5e1;font-size:13px;padding:0 4px}
+.bo-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted,#6b7280)}
+.bo-count{font-weight:600}
+.bo-count.soon{color:#b45309}.bo-count.due{color:#b91c1c}.bo-count.ok{color:#166534}
+.bo-notes{font-size:11px;color:var(--muted,#6b7280);margin-top:6px;line-height:1.45;border-top:1px dashed var(--border,#e5e7eb);padding-top:6px}
+.bo-act{margin-left:auto}
+.bo-flash{animation:boflash 2.2s ease}
+@keyframes boflash{0%,45%{background:#fef9c3;box-shadow:0 0 0 3px #fde68a}100%{background:var(--surface2,#f8fafc);box-shadow:none}}
+/* outcome editor modal */
+.kind-pick{display:flex;gap:8px;margin-bottom:8px}
+.kind-opt{flex:1;border:1.5px solid var(--border,#e5e7eb);border-radius:8px;padding:10px;cursor:pointer;transition:all .12s}
+.kind-opt:hover{border-color:#a5b4fc}
+.kind-opt.sel-lead{border-color:#7c3aed;background:#f5f3ff}
+.kind-opt.sel-lag{border-color:#0369a1;background:#f0f9ff}
+.kind-opt .ko-t{font-weight:700;font-size:12px;margin-bottom:3px}
+.kind-opt .ko-d{font-size:10.5px;color:var(--muted,#6b7280);line-height:1.4}
+.kind-help{background:#f8fafc;border:1px solid var(--border,#e5e7eb);border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.6;color:var(--muted,#4b5563);margin-bottom:12px}
+.kind-help b{color:var(--text,#111)}
+.kind-help .eg{color:#6d28d9}
+.cad-row{display:flex;gap:6px;flex-wrap:wrap}
+.cad-chip{border:1px solid var(--border,#e5e7eb);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;background:var(--card,#fff)}
+.cad-chip.sel{background:var(--primary,#4f46e5);color:#fff;border-color:var(--primary,#4f46e5)}
+@media(max-width:640px){.bo-table{font-size:11px}.bet-title{min-width:120px}.bo-strip{flex-direction:column}.bo-cell+.bo-cell{border-left:none;border-top:1px solid var(--border,#e5e7eb)}.bo-arrow{display:none}.kind-pick{flex-direction:column}}
 </style>
 <nav class="tab-nav">
   <button class="tab-btn active" data-tab="today">Tasks</button>
@@ -719,6 +758,60 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="modal-actions">
     <button class="btn" onclick="document.getElementById('bet-modal').classList.remove('open')">Cancel</button>
     <button class="btn btn-primary" onclick="saveBet()">Save bet</button>
+  </div>
+</div>
+</div>
+
+<!-- ADD/EDIT OUTCOME (INDICATOR) MODAL -->
+<div class="modal-overlay" id="outcome-modal">
+<div class="modal" style="max-width:560px">
+  <div class="modal-title" id="oc-modal-title">Add indicator</div>
+  <div class="bet-thesis" id="oc-bet-name" style="margin-top:-4px"></div>
+
+  <div class="form-group">
+    <label class="form-label">What kind of indicator is this?</label>
+    <div class="kind-pick">
+      <div class="kind-opt" id="oc-opt-lag" onclick="setOcKind('lagging')">
+        <div class="ko-t">🎯 Lagging — the scoreboard</div>
+        <div class="ko-d">The real result you're betting on. Moves slowly, confirms success, you can't push it directly.</div>
+      </div>
+      <div class="kind-opt" id="oc-opt-lead" onclick="setOcKind('leading')">
+        <div class="ko-t">⚡ Leading — the leading edge</div>
+        <div class="ko-d">An early signal you can influence this week that predicts the lagging number.</div>
+      </div>
+    </div>
+  </div>
+  <div class="kind-help">
+    <b>One question:</b> is this the RESULT you want, or an early SIGN it's coming?<br>
+    <b>🎯 Lagging</b> = you're judged on it. <span class="eg">e.g. % of reactive WOs created by supervisors.</span><br>
+    <b>⚡ Leading</b> = you act on it. <span class="eg">e.g. # supervisors who created a WO this week.</span><br>
+    Every bet wants at least one of each. <i>(Fitness: lagging = your weight; leading = workouts + calories logged this week.)</i>
+  </div>
+
+  <div class="form-group"><label class="form-label">Indicator name *</label><input class="form-input" id="oc-name" placeholder="The smallest number that answers: did the behaviour change?"></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Baseline <span style="font-weight:400;color:var(--muted)">— the BEFORE</span></label><input class="form-input" id="oc-baseline" placeholder="e.g. 1.2% (90 of 7,361)"></div>
+    <div class="form-group"><label class="form-label">Target <span style="font-weight:400;color:var(--muted)">— the AFTER you want</span></label><input class="form-input" id="oc-target" placeholder="e.g. 40% in 8 weeks"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Actual <span style="font-weight:400;color:var(--muted)">— fill in only when you measure</span></label><input class="form-input" id="oc-actual" placeholder="before → after (a real delta, not just &quot;1&quot;)"></div>
+  <div class="form-group"><label class="form-label">Notes <span style="font-weight:400;color:var(--muted)">— where the number comes from, caveats</span></label><textarea class="form-textarea" id="oc-notes" rows="2" placeholder="How is this measured? Any caveats?"></textarea></div>
+
+  <div class="form-group">
+    <label class="form-label">When should I remind you to check this?</label>
+    <div class="cad-row" id="oc-cad-row">
+      <span class="cad-chip" data-days="7" onclick="setCad(this,7)">In 1 week</span>
+      <span class="cad-chip" data-days="14" onclick="setCad(this,14)">In 2 weeks</span>
+      <span class="cad-chip" data-days="28" onclick="setCad(this,28)">In 4 weeks</span>
+      <span class="cad-chip" data-days="0" onclick="setCad(this,0)">Custom date</span>
+    </div>
+    <input class="form-input" id="oc-check" type="date" style="margin-top:8px">
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px;cursor:pointer"><input type="checkbox" id="oc-recur" style="width:auto"> Repeat this check every <input class="form-input" id="oc-recur-days" type="number" min="1" style="width:64px;padding:4px 6px" value="14"> days</label>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">✓ A reminder task is created for the check date. Completing it brings you straight back here to update this indicator.</div>
+  </div>
+
+  <div class="modal-actions">
+    <button class="btn" onclick="document.getElementById('outcome-modal').classList.remove('open')">Cancel</button>
+    <button class="btn btn-primary" onclick="saveOutcome()">Save indicator</button>
   </div>
 </div>
 </div>
@@ -2056,6 +2149,7 @@ async function saveComplete(){
 }
 async function completeTask(id,remarks,decData,artifactLink,outcomeRows,extra){
   extra=extra||{};
+  const doneTask=tasks.find(t=>t.id===id); // capture before it's filtered out (for outcome-check jump)
   const now=new Date().toISOString();const upd={status:'done',completed_at:now,updated_at:now};
   if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;
   if(extra.impact)upd.impact=extra.impact;
@@ -2075,6 +2169,7 @@ async function completeTask(id,remarks,decData,artifactLink,outcomeRows,extra){
   if(outcomeRows&&outcomeRows.length){const{error:outErr}=await sb.from('task_outcomes').insert(outcomeRows.map(o=>({task_id:id,metric_id:o.metric_id,new_value:o.new_value,note:o.note||null,logged_at:now})));if(outErr)console.error('Outcome log failed:',outErr);}
   const fs=focusSessions.find(s=>s.task_id===id);if(fs){await sb.from('focus_sessions').update({completed:true}).eq('id',fs.id);fs.completed=true;}
   tasks=tasks.filter(t=>t.id!==id);closeCompleteModal();renderTodayTasks();renderAllTasks();renderFocusSlots();
+  if(doneTask&&doneTask.outcome_id)jumpToOutcome(doneTask.outcome_id); // outcome-check task → jump to the indicator to update it
 }
 
 // ── DISPOSITION (not "done by me") ───────────────────
@@ -2364,24 +2459,40 @@ function renderBets(){
   const today=new Date().toISOString().slice(0,10);
   body.innerHTML=[...betsData].sort((a,b)=>(BET_ORDER[a.status]??9)-(BET_ORDER[b.status]??9)).map(b=>{
     const outs=betOutcomesData.filter(o=>o.bet_id===b.id);
-    const rows=outs.map(o=>{
+    const cell=(k,v)=>`<div class="bo-cell"><span class="k">${k}</span><span class="v ${v?'':'empty'}">${v?esc(v):'—'}</span></div>`;
+    const outsHtml=outs.length?`<div class="bo-list">${outs.map(o=>{
+      const isLead=o.kind==='leading';
       const stale=o.status!=='measured'&&o.check_date&&o.check_date<today;
-      const st=o.status==='measured'?'<span class="bo-measured">measured</span>':(stale?'<span class="bo-stale">STALE — measure now</span>':esc(o.status));
-      return `<tr><td><b>${esc(o.metric_name)}</b><div style="font-size:10px;color:var(--muted)">${esc(o.kind)}</div></td>
-      <td class="bo-edit" onclick="editOutcome('${o.id}','baseline')" title="Click to edit">${esc(o.baseline||'— set baseline')}</td>
-      <td class="bo-edit" onclick="editOutcome('${o.id}','target')" title="Click to edit">${esc(o.target||'—')}</td>
-      <td class="bo-edit" onclick="markMeasured('${o.id}')" title="Click to record actual">${esc(o.actual||'— record actual')}</td>
-      <td>${esc(o.check_date||'—')}</td><td>${st}</td></tr>`;
-    }).join('');
+      let countHtml;
+      if(o.status==='measured'){countHtml=`<span class="bo-count ok">✓ measured ${esc(o.measured_at||'')}</span>`;}
+      else if(o.check_date){
+        const d=Math.round((new Date(o.check_date+'T00:00:00')-new Date(today+'T00:00:00'))/864e5);
+        const cls=d<0?'due':(d<=3?'soon':'ok');
+        const txt=d<0?`${-d}d overdue`:(d===0?'due today':`in ${d}d`);
+        countHtml=`<span class="bo-count ${cls}">🔔 check ${esc(o.check_date)} · ${txt}</span>`;
+      } else {countHtml='<span class="bo-count">no check scheduled</span>';}
+      return `<div class="bo-item ${isLead?'lead':'lag'}" id="bo-${o.id}">
+        <div class="bo-top">
+          <span class="bo-badge ${isLead?'lead':'lag'}">${isLead?'⚡ Leading':'🎯 Lagging'}</span>
+          <span class="bo-badge-sub">${isLead?'early signal — you act on it':'the result — you\'re judged on it'}</span>
+          ${stale?'<span class="bo-count due">STALE</span>':''}
+          <span class="bo-act"><button class="btn btn-sm btn-primary" onclick="openOutcomeModal('${b.id}','${o.id}',true)">Update</button></span>
+        </div>
+        <div class="bo-name">${esc(o.metric_name)}</div>
+        <div class="bo-strip">${cell('Baseline · before',o.baseline)}<div class="bo-arrow">→</div>${cell('Target',o.target)}<div class="bo-arrow">→</div>${cell('Actual · after',o.actual)}</div>
+        <div class="bo-foot">${countHtml}${o.recur_days?`<span>· repeats every ${o.recur_days}d</span>`:''}</div>
+        ${o.notes?`<div class="bo-notes">${esc(o.notes)}</div>`:''}
+      </div>`;
+    }).join('')}</div>`:'<div style="font-size:12px;color:var(--muted)">No indicators yet — add one to define what success means for this bet.</div>';
     const golive=b.go_live_date?('🚀 '+b.go_live_date):'no go-live yet';
     const acts=[];
     if(b.status==='proposed')acts.push(`<button class="btn btn-sm" onclick="setBetStatus('${b.id}','active')">Confirm → Active</button>`);
     if(b.status==='active')acts.push(`<button class="btn btn-sm btn-primary" onclick="setBetStatus('${b.id}','live')">Mark LIVE</button>`);
-    if(['proposed','active','live'].includes(b.status))acts.push(`<button class="btn btn-sm" onclick="addOutcomeToBet('${b.id}')">+ Outcome</button>`,`<button class="btn btn-sm btn-danger" onclick="setBetStatus('${b.id}','abandoned')">Abandon</button>`);
+    if(['proposed','active','live'].includes(b.status))acts.push(`<button class="btn btn-sm" onclick="openOutcomeModal('${b.id}')">+ Indicator</button>`,`<button class="btn btn-sm btn-danger" onclick="setBetStatus('${b.id}','abandoned')">Abandon</button>`);
     return `<div class="bet-card"><div class="bet-head"><span class="bet-pill bp-${esc(b.status)}">${esc(b.status)}</span><span class="bet-title">${esc(b.title)}</span>${acts.join('')}</div>
     <div class="bet-thesis">${esc(b.thesis||'')}</div>
     <div class="bet-meta"><span>${esc(b.customer||'—')}</span><span>${esc(b.workstream||'—')}</span><span>${golive}</span><span>📋 ${betTaskCounts[b.id]||0} linked tasks</span></div>
-    ${outs.length?`<table class="bo-table"><tr><th>Outcome</th><th>Baseline (before)</th><th>Target</th><th>Actual (after)</th><th>Check</th><th>Status</th></tr>${rows}</table>`:'<div style="font-size:12px;color:var(--muted)">No outcomes defined — add one.</div>'}</div>`;
+    ${outsHtml}</div>`;
   }).join('');
 }
 async function answerBetQ(id){
@@ -2396,26 +2507,98 @@ async function dismissBetQ(id){
   if(error){alert('Failed: '+error.message);return;}
   loadBets();
 }
-async function editOutcome(id,field){
-  const o=betOutcomesData.find(x=>x.id===id);if(!o)return;
-  const label={baseline:'Baseline (the BEFORE — number + context)',target:'Target'}[field]||field;
-  const val=prompt(label+':',o[field]||'');if(val===null)return;
-  const upd={[field]:val.trim()||null,updated_at:new Date().toISOString()};
-  if(field==='baseline'&&val.trim())upd.baseline_captured_at=new Date().toISOString().slice(0,10);
-  const{error}=await sb.from('bet_outcomes').update(upd).eq('id',id);
-  if(error){alert('Save failed: '+error.message);return;}
-  loadBets();
+// ── OUTCOME EDITOR (add / edit / measure — one modal) ──
+let _oc={betId:null,editId:null,kind:'lagging'};
+function openOutcomeModal(betId,outcomeId,focusActual){
+  _oc={betId,editId:outcomeId||null,kind:'lagging'};
+  const b=betsData.find(x=>x.id===betId);
+  document.getElementById('oc-bet-name').textContent=b?('🎯 '+b.title):'';
+  const o=outcomeId?betOutcomesData.find(x=>x.id===outcomeId):null;
+  document.getElementById('oc-modal-title').textContent=o?'Update indicator':'Add indicator';
+  document.getElementById('oc-name').value=o?.metric_name||'';
+  document.getElementById('oc-baseline').value=o?.baseline||'';
+  document.getElementById('oc-target').value=o?.target||'';
+  document.getElementById('oc-actual').value=o?.actual||'';
+  document.getElementById('oc-notes').value=o?.notes||'';
+  document.getElementById('oc-check').value=o?.check_date||'';
+  document.getElementById('oc-recur').checked=!!(o&&o.recur_days);
+  document.getElementById('oc-recur-days').value=(o&&o.recur_days)||14;
+  document.querySelectorAll('#oc-cad-row .cad-chip').forEach(c=>c.classList.remove('sel'));
+  setOcKind(o?.kind||'lagging');
+  document.getElementById('outcome-modal').classList.add('open');
+  if(focusActual){const a=document.getElementById('oc-actual');setTimeout(()=>{a.focus();a.select();},60);}
 }
-async function markMeasured(id){
-  const o=betOutcomesData.find(x=>x.id===id);if(!o)return;
-  if(!o.baseline&&!confirm('No baseline set — an actual without a before proves nothing. Record anyway?'))return;
-  const val=prompt('Actual (before → after — a real delta, not "1"):',o.actual||'');
-  if(val===null)return;
-  const t=val.trim();
-  if(!t||/^[01]$/.test(t)||t.length<4){alert('Binary/empty outcomes are banned. Give a before → after or a named concrete result.');return;}
-  const{error}=await sb.from('bet_outcomes').update({actual:t,measured_at:new Date().toISOString().slice(0,10),status:'measured',updated_at:new Date().toISOString()}).eq('id',id);
-  if(error){alert('Save failed: '+error.message);return;}
-  loadBets();
+function setOcKind(k){
+  _oc.kind=k;
+  document.getElementById('oc-opt-lag').classList.toggle('sel-lag',k==='lagging');
+  document.getElementById('oc-opt-lead').classList.toggle('sel-lead',k==='leading');
+}
+function setCad(el,days){
+  document.querySelectorAll('#oc-cad-row .cad-chip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  if(days>0){const d=new Date();d.setDate(d.getDate()+days);document.getElementById('oc-check').value=d.toISOString().slice(0,10);}
+  else{document.getElementById('oc-check').focus();}
+}
+async function saveOutcome(){
+  const name=document.getElementById('oc-name').value.trim();
+  if(!name){alert('Indicator name is required.');return;}
+  const actual=document.getElementById('oc-actual').value.trim();
+  if(actual&&(/^[01]$/.test(actual)||actual.length<4)){alert('Binary/empty actuals are banned. Give a before → after or a named concrete result.');return;}
+  const baseline=document.getElementById('oc-baseline').value.trim();
+  const target=document.getElementById('oc-target').value.trim();
+  const notes=document.getElementById('oc-notes').value.trim();
+  const check=document.getElementById('oc-check').value||null;
+  const recur=document.getElementById('oc-recur').checked?(parseInt(document.getElementById('oc-recur-days').value||'0')||null):null;
+  const today=new Date().toISOString().slice(0,10);
+  const prev=_oc.editId?betOutcomesData.find(x=>x.id===_oc.editId):null;
+  const payload={bet_id:_oc.betId,metric_name:name,kind:_oc.kind,baseline:baseline||null,target:target||null,notes:notes||null,check_date:check,recur_days:recur,updated_at:new Date().toISOString()};
+  if(baseline&&(!prev||prev.baseline!==baseline))payload.baseline_captured_at=today;
+  const justMeasured=!!actual&&(!prev||prev.actual!==actual);
+  if(actual){payload.actual=actual;payload.measured_at=today;payload.status='measured';}
+  else if(!prev){payload.status='pending';}
+  let outcomeId=_oc.editId;
+  if(_oc.editId){
+    const{error}=await sb.from('bet_outcomes').update(payload).eq('id',_oc.editId);
+    if(error){alert('Save failed: '+error.message);return;}
+  }else{
+    const{data,error}=await sb.from('bet_outcomes').insert(payload).select().single();
+    if(error){alert('Save failed: '+error.message);return;}
+    outcomeId=data.id;
+  }
+  await syncOutcomeCheckTask(outcomeId,{bet_id:_oc.betId,metric_name:name,kind:_oc.kind,baseline:baseline||null,target:target||null,check_date:check,recur_days:recur},justMeasured);
+  document.getElementById('outcome-modal').classList.remove('open');
+  await loadBets();
+  await reloadOpenTasks();
+}
+// Keeps exactly one open reminder task per outcome, due on its check date.
+async function syncOutcomeCheckTask(outcomeId,o,justMeasured){
+  const b=betsData.find(x=>x.id===o.bet_id)||{};
+  await sb.from('tasks').update({status:'deleted',updated_at:new Date().toISOString()}).eq('outcome_id',outcomeId).eq('status','open').eq('bet_role','outcome_check');
+  let due=o.check_date;
+  if(justMeasured){
+    if(o.recur_days){const d=new Date();d.setDate(d.getDate()+o.recur_days);due=d.toISOString().slice(0,10);
+      await sb.from('bet_outcomes').update({check_date:due,status:'pending',updated_at:new Date().toISOString()}).eq('id',outcomeId);
+    }else{due=null;}
+  }
+  if(!due)return;
+  const lead=o.kind==='leading';
+  const title=(lead?'⚡ Update LEADING indicator: ':'🎯 Update LAGGING indicator: ')+o.metric_name;
+  const desc=`Outcome check for bet "${b.title||''}". ${lead?'LEADING = an early signal you act on.':'LAGGING = the result you are judged on.'} Baseline: ${o.baseline||'—'} · Target: ${o.target||'—'}. Completing this task opens the indicator so you can record the actual.`;
+  await sb.from('tasks').insert({title,description:desc,type:'investigate',priority:'medium',status:'open',assigned_to:'Me',customer:b.customer||null,workstream:b.workstream||null,bet_id:o.bet_id,bet_role:'outcome_check',outcome_id:outcomeId,due_date:due,is_deep_work:false,created_at:new Date().toISOString()});
+}
+async function reloadOpenTasks(){
+  const{data}=await sb.from('tasks').select('*').neq('status','done').neq('status','deleted').neq('status','noise').neq('status','intake_error').neq('status','delegated').order('created_at',{ascending:false});
+  tasks=data||[];renderTodayTasks();renderAllTasks();populateFilters();
+}
+// Completing an outcome-check task lands here: open the Bets tab, flash the
+// indicator, and open its editor focused on Actual so you know exactly what to update.
+async function jumpToOutcome(outcomeId){
+  const btn=document.querySelector('.tab-btn[data-tab="bets"]');if(btn)btn.click();
+  await loadBets();
+  const o=betOutcomesData.find(x=>x.id===outcomeId);if(!o)return;
+  const el=document.getElementById('bo-'+outcomeId);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('bo-flash');setTimeout(()=>el.classList.remove('bo-flash'),2200);}
+  setTimeout(()=>openOutcomeModal(o.bet_id,outcomeId,true),400);
 }
 async function setBetStatus(id,st){
   const b=betsData.find(x=>x.id===id);if(!b)return;
@@ -2431,15 +2614,7 @@ async function setBetStatus(id,st){
   }
   loadBets();
 }
-async function addOutcomeToBet(betId){
-  const m=prompt('Metric name (GQM: the smallest number that answers "did the behavior change?"):');
-  if(!m||!m.trim())return;
-  const base=prompt('Baseline (the BEFORE — leave blank if unknown):')||'';
-  const chk=prompt('Check date (YYYY-MM-DD, when to measure):')||null;
-  const{error}=await sb.from('bet_outcomes').insert({bet_id:betId,metric_name:m.trim(),kind:'lagging',baseline:base.trim()||null,baseline_captured_at:base.trim()?new Date().toISOString().slice(0,10):null,check_date:chk,status:'pending'});
-  if(error){alert('Failed: '+error.message);return;}
-  loadBets();
-}
+function addOutcomeToBet(betId){openOutcomeModal(betId);} // legacy alias → new modal
 function openBetModal(){
   const cSel=document.getElementById('b-customer'),wSel=document.getElementById('b-workstream');
   cSel.innerHTML='<option value="">—</option>'+customers.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
