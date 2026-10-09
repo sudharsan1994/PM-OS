@@ -345,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.99 · 2026-07-23</div>
+  <div class="app-version">v1.99.1 · 2026-10-09</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -1337,7 +1337,8 @@ function renderFocusSlots(){
     const defb=defCount>0?`<span class="badge ${defCount>=2?'b-deferred-hot':'b-deferred'}">⏩ ×${defCount}</span>`:'';
     // Source link + requester
     const ch=channel(tk.source);const chIcon=ch==='teams'?'🔷':ch==='outlook'?'📧':ch==='document'?'📄':'';
-    const srcLink=tk.source?`<a href="${normalizeSource(tk.source)}" target="_blank" class="task-link" style="font-size:11px">Open thread ↗</a>`:'';
+    // v1.99.1: multiple sources — one clickable link per URL (Source 1 ↗ Source 2 ↗), same as task cards. Previously the whole newline-joined field went into a single broken href.
+    const srcLink=(tk.source||'').split('\n').map(x=>x.trim()).filter(Boolean).map((x,i,arr)=>`<a href="${normalizeSource(x)}" target="_blank" class="task-link" style="font-size:11px">Source${arr.length>1?' '+(i+1):''} ↗</a>`).join('');
     const reqLine=tk.requester?`<span style="font-size:11px;color:var(--muted)">from ${esc(tk.requester)}</span>`:'';
     const chb=chIcon?`<span class="badge b-channel">${chIcon} ${cap(ch)}</span>`:'';
     const live=(!s.completed&&!s.not_done_today);
