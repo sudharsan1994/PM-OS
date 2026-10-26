@@ -1539,7 +1539,8 @@ async function openCompletedSummary(id){
   const sat=t.satisfaction?['','😞','😐','😊'][t.satisfaction]:'—';
   const srcs=(t.source||'').split('\n').map(x=>x.trim()).filter(Boolean);
   const arts=(t.artifact_link||'').split('\n').map(x=>x.trim()).filter(Boolean);
-  const links=[...srcs.map((u,i)=>`<a class="cs-link" href="${esc(normalizeSource(u))}" target="_blank" rel="noopener">${_csLinkLabel(u,i,srcs.length,'Source')} ↗</a>`),
+  const _cnt={},_tot={};srcs.forEach(u=>{const k=channel(u)||'x';_tot[k]=(_tot[k]||0)+1;});
+  const links=[...srcs.map(u=>{const k=channel(u)||'x';_cnt[k]=(_cnt[k]||0)+1;return`<a class="cs-link" href="${esc(normalizeSource(u))}" target="_blank" rel="noopener">${_csLinkLabel(u,_cnt[k]-1,_tot[k],'Source')} ↗</a>`;}),
                ...arts.map((u,i)=>`<a class="cs-link" href="${esc(u)}" target="_blank" rel="noopener">📎 Artifact${arts.length>1?' '+(i+1):''} ↗</a>`)].join('');
   const bet=t.bet_id&&typeof betsData!=='undefined'?(betsData.find(b=>b.id===t.bet_id)||null):null;
   const people=[t.requester?['From',esc(t.requester)]:null,t.assigned_to&&t.assigned_to!=='Me'?['Owner',esc(t.assigned_to)]:null,t.waiting_on?['Waited on',esc(t.waiting_on)]:null,bet||t.bet_id?['Bet',bet?esc(bet.title):'Linked']:null].filter(Boolean);
