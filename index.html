@@ -345,7 +345,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.99.1 · 2026-10-09</div>
+  <div class="app-version">v1.99.2 · 2026-10-26</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -855,6 +855,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <input type="checkbox" id="f-outcome-req" style="display:none">
       <span id="outcome-req-icon">⬜</span>
       <span>📊 Requires an outcome when done <span style="font-weight:400;color:var(--muted)">— could move a customer or a North Star</span></span>
+    </div>
+  </div>
+  <!-- v1.99.2: completion details, shown only when editing a completed task -->
+  <div class="dec-capture hidden" id="f-completion-section" style="margin-top:14px">
+    <div class="dec-capture-lbl">✅ Completion details <span id="f-completed-on" style="font-weight:400;color:var(--muted)"></span></div>
+    <div class="form-group"><label class="form-label">What was done / outcome</label><textarea class="form-textarea" id="f-comp-remarks" rows="3"></textarea></div>
+    <div class="form-group"><label class="form-label">Artifacts <span style="font-weight:400;color:var(--muted)">— one link per line</span></label><textarea class="form-textarea" id="f-comp-artifacts" rows="2"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Impact</label><select class="form-select" id="f-comp-impact"><option value="">—</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+      <div class="form-group"><label class="form-label">Satisfaction</label><select class="form-select" id="f-comp-sat"><option value="">—</option><option value="1">😞</option><option value="2">😐</option><option value="3">😊</option></select></div>
     </div>
   </div>
   <input type="hidden" id="f-id">
@@ -1461,6 +1471,9 @@ async function reclaimTask(id){
 async function renderCompleted(){
   document.getElementById('comp-list').innerHTML='<li class="task-loading">Loading…</li>';
   await loadCompleted();
+  renderCompletedList();
+}
+function renderCompletedList(){
   const cust=v('c-cust'),ws=v('c-ws'),req=v('c-req'),q=v('c-search').toLowerCase();
   let fil=completedTasks.filter(t=>{
     if(cust&&t.customer!==cust)return false;
@@ -1988,7 +2001,7 @@ function toggleWaitingOnField(){
   if(isFollowUp)document.getElementById('f-assignee').value='Me';
 }
 function openAddTask(){
-  document.getElementById('add-modal-title').textContent='Add task';document.getElementById('f-id').value='';document.getElementById('delete-btn').classList.add('hidden');
+  document.getElementById('add-modal-title').textContent='Add task';document.getElementById('f-id').value='';document.getElementById('f-completion-section').classList.add('hidden');document.getElementById('delete-btn').classList.add('hidden');
   ['f-title','f-desc','f-why','f-action','f-requester','f-workstream','f-waiting-on'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});populateSources('');
   document.getElementById('f-priority').value='medium';document.getElementById('f-type').value='';document.getElementById('f-customer').value='';document.getElementById('f-deep-work').checked=false;document.getElementById('deep-toggle').className='deep-toggle';document.getElementById('deep-toggle-icon').textContent='⬜';document.getElementById('f-outcome-req').checked=false;document.getElementById('outcome-req-toggle').className='deep-toggle';document.getElementById('outcome-req-icon').textContent='⬜';
   document.getElementById('f-assignee').value='Me';document.getElementById('f-due').value='';document.getElementById('f-awaiting').value='';
@@ -1996,7 +2009,9 @@ function openAddTask(){
   document.getElementById('add-modal').classList.add('open');
 }
 function openEditTask(id){
-  const t=tasks.find(t=>t.id===id);if(!t)return;
+  const t=tasks.find(t=>t.id===id)||(completedTasks||[]).find(t=>t.id===id);if(!t)return;
+  const isDone=t.status==='done';document.getElementById('f-completion-section').classList.toggle('hidden',!isDone);
+  if(isDone){document.getElementById('f-comp-remarks').value=t.completion_remarks||'';document.getElementById('f-comp-artifacts').value=t.artifact_link||'';document.getElementById('f-comp-impact').value=t.impact||'';document.getElementById('f-comp-sat').value=t.satisfaction?String(t.satisfaction):'';document.getElementById('f-completed-on').textContent=t.completed_at?'— completed '+new Date(t.completed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';}
   document.getElementById('add-modal-title').textContent='Edit task';document.getElementById('f-id').value=t.id;document.getElementById('delete-btn').classList.remove('hidden');
   document.getElementById('f-title').value=t.title||'';document.getElementById('f-desc').value=t.description||'';
   document.getElementById('f-why').value=t.why||'';document.getElementById('f-action').value=t.action_required||'';
@@ -2014,9 +2029,11 @@ async function saveTask(){
   const id=document.getElementById('f-id').value;const title=document.getElementById('f-title').value.trim();
   if(!title){alert('Title is required.');return;}
   const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,waiting_on:document.getElementById('f-waiting-on').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,bet_id:document.getElementById('f-bet')?.value||null,is_deep_work:document.getElementById('f-deep-work').checked,outcome_required:document.getElementById('f-outcome-req').checked,updated_at:new Date().toISOString()};
-  if(id){const{error}=await sb.from('tasks').update(data).eq('id',id);if(error){alert('Save failed — nothing was changed: '+error.message);return;}const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};}
+  const ci=id?(completedTasks||[]).findIndex(t=>t.id===id):-1;const editingDone=ci>=0&&!tasks.some(t=>t.id===id);
+  if(editingDone){const sat=parseInt(document.getElementById('f-comp-sat').value||'0');Object.assign(data,{completion_remarks:document.getElementById('f-comp-remarks').value.trim()||null,artifact_link:document.getElementById('f-comp-artifacts').value.split('\n').map(x=>x.trim()).filter(Boolean).join('\n')||null,impact:document.getElementById('f-comp-impact').value||null,satisfaction:sat>0?sat:null});}
+  if(id){const{error}=await sb.from('tasks').update(data).eq('id',id);if(error){alert('Save failed — nothing was changed: '+error.message);return;}const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};if(ci>=0)completedTasks[ci]={...completedTasks[ci],...data};}
   else{data.status='open';data.created_at=new Date().toISOString();const{data:nt,error}=await sb.from('tasks').insert(data).select().single();if(error){alert('Save failed — task was NOT created: '+error.message);return;}if(nt)tasks.unshift(nt);}
-  closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();
+  closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();if(editingDone)renderCompletedList();
 }
 let _pendingDeleteId=null;
 function deleteTaskDirect(id){
@@ -2040,8 +2057,9 @@ async function confirmDeleteTask(){
   const{error}=await sb.from('tasks').update({status:'deleted',updated_at:now}).eq('id',id);
   if(error){alert('Delete failed: '+error.message);return;}
   tasks=tasks.filter(t=>t.id!==id);
+  const wasDone=(completedTasks||[]).some(t=>t.id===id);completedTasks=(completedTasks||[]).filter(t=>t.id!==id);
   focusSessions=focusSessions.filter(s=>s.task_id!==id);
-  renderTodayTasks();renderAllTasks();renderFocusSlots();
+  renderTodayTasks();renderAllTasks();renderFocusSlots();if(wasDone)renderCompletedList();
 }
 
 // ── COMPLETE TASK ─────────────────────────────────────
@@ -2665,13 +2683,19 @@ const v=id=>document.getElementById(id)?.value||'';
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const cap=s=>s?s[0].toUpperCase()+s.slice(1):'';
 function cleanType(t){return{email:'other',doc:'other',teams:'other'}[t]||t||'other';}
+// v1.99.2: tenant id for Teams deep links; mail:/// connector URIs -> clickable Outlook web link (display only, stored source untouched)
+const FACILIO_TENANT_ID='fb3efeb2-201b-446a-87a9-a270d77baf75';
 function normalizeSource(src){
   if(!src)return src;
+  if(src.startsWith('mail:///messages/')){
+    const id=src.slice('mail:///messages/'.length).split('?')[0];
+    return`https://outlook.office365.com/owa/?ItemID=${id}&exvsurl=1&viewmodel=ReadMessageItem`;
+  }
   if(src.startsWith('teams:///')||src.startsWith('msteams://')){
     // Chat messages (1:1 or group): teams:///chats/{chatId}/messages/{msgId}
     // → https://teams.microsoft.com/l/chat/{chatId}/0  (opens the chat thread)
     const chatM=src.match(/chats\/([^/]+)\/messages\/(\d+)/);
-    if(chatM)return`https://teams.microsoft.com/l/message/${chatM[1]}/${chatM[2]}?context=${encodeURIComponent(JSON.stringify({contextType:'chat'}))}`;
+    if(chatM)return`https://teams.microsoft.com/l/message/${chatM[1]}/${chatM[2]}?context=${encodeURIComponent(JSON.stringify({contextType:'chat'}))}&tenantId=${FACILIO_TENANT_ID}`;
     // Channel messages: teams:///teams/{teamId}/channels/{channelId}/messages/{msgId}
     const chanM=src.match(/channels\/([^/]+)\/messages\/(\d+)/);
     if(chanM)return`https://teams.microsoft.com/l/message/${chanM[1]}/${chanM[2]}`;
@@ -2680,7 +2704,7 @@ function normalizeSource(src){
   }
   return src;
 }
-function channel(src){if(!src)return null;if(src.includes('teams.microsoft.com')||src.startsWith('teams://')||src.startsWith('msteams://'))return'teams';if(src.includes('outlook.office'))return'outlook';if(src.includes('sharepoint.com')||src.includes('onedrive'))return'document';if(src.startsWith('http'))return'other';return null;}
+function channel(src){if(!src)return null;if(src.includes('teams.microsoft.com')||src.startsWith('teams://')||src.startsWith('msteams://'))return'teams';if(src.includes('outlook.office')||src.startsWith('mail:///'))return'outlook';if(src.includes('sharepoint.com')||src.includes('onedrive'))return'document';if(src.startsWith('http'))return'other';return null;}
 function daysSince(d){return Math.floor((Date.now()-new Date(d))/86400000);}
 function daysUntil(d){const x=new Date(d);x.setHours(23,59,59);return Math.ceil((x-Date.now())/86400000);}
 
