@@ -191,6 +191,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .modal-overlay.open{display:flex}
 .modal{background:var(--surface);border-radius:var(--rl);padding:24px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
 .modal-title{font-size:16px;font-weight:600;margin-bottom:20px}
+/* v1.99.4 completion date picker */
+.cd-wrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cd-chip{padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);font-size:12.5px;font-weight:500;cursor:pointer;color:var(--text);transition:all .15s}
+.cd-chip:hover{border-color:var(--success);color:var(--success)}
+.cd-chip.active{background:var(--success);border-color:var(--success);color:#fff}
+.cd-date{border:1px solid var(--border);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--text);background:var(--surface);font-family:inherit}
+.cd-date.active{border-color:var(--success);box-shadow:0 0 0 2px var(--success-bg)}
+.cd-hint{font-size:11.5px;color:var(--muted);margin-left:4px}
 /* v1.99.3 completed-task summary drawer */
 .cs-overlay{position:fixed;inset:0;background:rgba(15,23,42,.35);backdrop-filter:blur(2px);z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s}
 .cs-overlay.open{opacity:1;pointer-events:auto}
@@ -203,7 +211,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .cs-title{font-size:17px;font-weight:650;line-height:1.35;margin:8px 0 10px;color:var(--text)}
 .cs-chips{display:flex;flex-wrap:wrap;gap:6px}
 .cs-body{flex:1;overflow-y:auto;padding:18px 22px 24px;display:flex;flex-direction:column;gap:18px}
-.cs-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.cs-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .cs-stat{background:var(--surface2);border-radius:10px;padding:10px 10px 9px}
 .cs-stat-l{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
 .cs-stat-v{font-size:14px;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -377,7 +385,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <header class="app-header">
   <div class="app-logo">PM-OS</div>
   <div class="clocks" id="clocks"></div>
-  <div class="app-version">v1.99.3 · 2026-10-26</div>
+  <div class="app-version">v1.99.4 · 2026-10-26</div>
   <button class="signout-btn" onclick="doSignOut()">Sign out</button>
 </header>
 
@@ -892,6 +900,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <!-- v1.99.2: completion details, shown only when editing a completed task -->
   <div class="dec-capture hidden" id="f-completion-section" style="margin-top:14px">
     <div class="dec-capture-lbl">✅ Completion details <span id="f-completed-on" style="font-weight:400;color:var(--muted)"></span></div>
+    <div class="form-group"><label class="form-label">Completed on</label><input type="date" class="form-input" id="f-comp-date" style="max-width:200px"></div>
     <div class="form-group"><label class="form-label">What was done / outcome</label><textarea class="form-textarea" id="f-comp-remarks" rows="3"></textarea></div>
     <div class="form-group"><label class="form-label">Artifacts <span style="font-weight:400;color:var(--muted)">— one link per line</span></label><textarea class="form-textarea" id="f-comp-artifacts" rows="2"></textarea></div>
     <div class="form-row">
@@ -927,6 +936,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="modal-overlay" id="complete-modal">
 <div class="modal">
   <div class="modal-title" id="complete-modal-title">Mark task complete</div>
+  <div class="form-group">
+    <label class="form-label">Completed on</label>
+    <div class="cd-wrap">
+      <button type="button" class="cd-chip" data-cd="0" onclick="setCompleteDate(0)">Today</button>
+      <button type="button" class="cd-chip" data-cd="1" onclick="setCompleteDate(1)">Yesterday</button>
+      <input type="date" class="cd-date" id="complete-date" onchange="setCompleteDate(null)">
+      <span class="cd-hint" id="complete-date-hint"></span>
+    </div>
+  </div>
   <div class="form-row">
     <div class="form-group"><label class="form-label">Workstream</label><select class="form-select" id="complete-workstream" onchange="onCompleteWorkstreamChange()"></select></div>
     <div class="form-group"><label class="form-label">Customer</label><select class="form-select" id="complete-customer"></select></div>
@@ -1548,7 +1566,6 @@ async function openCompletedSummary(id){
   document.getElementById('cs-body').innerHTML=`
     <div class="cs-stats">
       <div class="cs-stat"><div class="cs-stat-l">Completed</div><div class="cs-stat-v">${fmt(t.completed_at)}</div></div>
-      <div class="cs-stat"><div class="cs-stat-l">Took</div><div class="cs-stat-v">${_csDur(t.created_at,t.completed_at)}</div></div>
       <div class="cs-stat"><div class="cs-stat-l">Impact</div><div class="cs-stat-v" style="color:${impC}">${t.impact?cap(t.impact):'—'}</div></div>
       <div class="cs-stat"><div class="cs-stat-l">Satisfaction</div><div class="cs-stat-v" style="font-size:17px;line-height:1.1">${sat}</div></div>
     </div>
@@ -2103,7 +2120,7 @@ function openAddTask(){
 function openEditTask(id){
   const t=tasks.find(t=>t.id===id)||(completedTasks||[]).find(t=>t.id===id);if(!t)return;
   const isDone=t.status==='done';document.getElementById('f-completion-section').classList.toggle('hidden',!isDone);
-  if(isDone){document.getElementById('f-comp-remarks').value=t.completion_remarks||'';document.getElementById('f-comp-artifacts').value=t.artifact_link||'';document.getElementById('f-comp-impact').value=t.impact||'';document.getElementById('f-comp-sat').value=t.satisfaction?String(t.satisfaction):'';document.getElementById('f-completed-on').textContent=t.completed_at?'— completed '+new Date(t.completed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';}
+  if(isDone){document.getElementById('f-comp-remarks').value=t.completion_remarks||'';document.getElementById('f-comp-artifacts').value=t.artifact_link||'';document.getElementById('f-comp-impact').value=t.impact||'';document.getElementById('f-comp-sat').value=t.satisfaction?String(t.satisfaction):'';document.getElementById('f-completed-on').textContent='';const fcd=document.getElementById('f-comp-date');fcd.max=localISO();fcd.value=t.completed_at?localISO(new Date(t.completed_at)):'';fcd.dataset.orig=fcd.value;}
   document.getElementById('add-modal-title').textContent='Edit task';document.getElementById('f-id').value=t.id;document.getElementById('delete-btn').classList.remove('hidden');
   document.getElementById('f-title').value=t.title||'';document.getElementById('f-desc').value=t.description||'';
   document.getElementById('f-why').value=t.why||'';document.getElementById('f-action').value=t.action_required||'';
@@ -2122,10 +2139,10 @@ async function saveTask(){
   if(!title){alert('Title is required.');return;}
   const data={title,description:document.getElementById('f-desc').value.trim()||null,why:document.getElementById('f-why').value.trim()||null,action_required:document.getElementById('f-action').value.trim()||null,priority:document.getElementById('f-priority').value,type:document.getElementById('f-type').value||null,customer:document.getElementById('f-customer').value||null,assigned_to:document.getElementById('f-assignee').value||'Me',due_date:document.getElementById('f-due').value||null,awaiting_since:document.getElementById('f-awaiting').value||null,requester:document.getElementById('f-requester').value.trim()||null,waiting_on:document.getElementById('f-waiting-on').value.trim()||null,source:getSourceValue(),workstream:document.getElementById('f-workstream').value.trim()||null,bet_id:document.getElementById('f-bet')?.value||null,is_deep_work:document.getElementById('f-deep-work').checked,outcome_required:document.getElementById('f-outcome-req').checked,updated_at:new Date().toISOString()};
   const ci=id?(completedTasks||[]).findIndex(t=>t.id===id):-1;const editingDone=ci>=0&&!tasks.some(t=>t.id===id);
-  if(editingDone){const sat=parseInt(document.getElementById('f-comp-sat').value||'0');Object.assign(data,{completion_remarks:document.getElementById('f-comp-remarks').value.trim()||null,artifact_link:document.getElementById('f-comp-artifacts').value.split('\n').map(x=>x.trim()).filter(Boolean).join('\n')||null,impact:document.getElementById('f-comp-impact').value||null,satisfaction:sat>0?sat:null});}
+  if(editingDone){const sat=parseInt(document.getElementById('f-comp-sat').value||'0');Object.assign(data,{completion_remarks:document.getElementById('f-comp-remarks').value.trim()||null,artifact_link:document.getElementById('f-comp-artifacts').value.split('\n').map(x=>x.trim()).filter(Boolean).join('\n')||null,impact:document.getElementById('f-comp-impact').value||null,satisfaction:sat>0?sat:null});const fcd=document.getElementById('f-comp-date');if(fcd.value&&fcd.value!==fcd.dataset.orig){if(fcd.value>localISO()){alert('Completion date cannot be in the future.');return;}data.completed_at=completedAtFromDate(fcd.value);}}
   if(id){const{error}=await sb.from('tasks').update(data).eq('id',id);if(error){alert('Save failed — nothing was changed: '+error.message);return;}const i=tasks.findIndex(t=>t.id===id);if(i>=0)tasks[i]={...tasks[i],...data};if(ci>=0)completedTasks[ci]={...completedTasks[ci],...data};}
   else{data.status='open';data.created_at=new Date().toISOString();const{data:nt,error}=await sb.from('tasks').insert(data).select().single();if(error){alert('Save failed — task was NOT created: '+error.message);return;}if(nt)tasks.unshift(nt);}
-  closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();if(editingDone)renderCompletedList();
+  closeAddModal();renderTodayTasks();renderAllTasks();populateFilters();if(editingDone){completedTasks.sort((x,y)=>new Date(y.completed_at||0)-new Date(x.completed_at||0));renderCompletedList();}
 }
 let _pendingDeleteId=null;
 function deleteTaskDirect(id){
@@ -2155,11 +2172,28 @@ async function confirmDeleteTask(){
 }
 
 // ── COMPLETE TASK ─────────────────────────────────────
+// v1.99.4 completion date: defaults to today, past dates allowed, future blocked
+function localISO(d){d=d||new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().split('T')[0];}
+function setCompleteDate(daysAgo){
+  const inp=document.getElementById('complete-date');const today=localISO();inp.max=today;
+  if(daysAgo!==null){const d=new Date();d.setDate(d.getDate()-daysAgo);inp.value=localISO(d);}
+  if(!inp.value||inp.value>today)inp.value=today;
+  const diff=Math.round((new Date(today)-new Date(inp.value))/864e5);
+  document.querySelectorAll('.cd-chip').forEach(c=>c.classList.toggle('active',+c.dataset.cd===diff));
+  inp.classList.toggle('active',diff>1);
+  document.getElementById('complete-date-hint').textContent=diff>1?new Date(inp.value).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' · '+diff+' days ago':'';
+}
+function completedAtFromDate(dateStr){
+  // today → exact now; a past date → that day at 6 PM local (keeps it on the right day in every view)
+  if(!dateStr||dateStr>=localISO())return new Date().toISOString();
+  const [y,m,d]=dateStr.split('-').map(Number);return new Date(y,m-1,d,18,0,0).toISOString();
+}
 function openCompleteModal(id){
   const t=tasks.find(t=>t.id===id);if(!t)return;
   document.getElementById('complete-id').value=id;document.getElementById('complete-task-type').value=t.type||'';document.getElementById('complete-satisfaction').value='0';['sat-1','sat-2','sat-3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('sat-active');});
   document.getElementById('complete-impact').value='';['impact-low','impact-medium','impact-high'].forEach(x=>document.getElementById(x)?.classList.remove('sat-active'));
   const ceErr=document.getElementById('complete-error');ceErr.style.display='none';ceErr.textContent='';
+  setCompleteDate(0);
   document.getElementById('complete-outcome-note').style.outline='';document.getElementById('impact-group').style.outline='';
   const wsSel=document.getElementById('complete-workstream');
   wsSel.innerHTML='<option value="">— none —</option>'+workstreams.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
@@ -2261,7 +2295,7 @@ async function saveComplete(){
 async function completeTask(id,remarks,decData,artifactLink,outcomeRows,extra){
   extra=extra||{};
   const doneTask=tasks.find(t=>t.id===id); // capture before it's filtered out (for outcome-check jump)
-  const now=new Date().toISOString();const upd={status:'done',completed_at:now,updated_at:now};
+  const now=new Date().toISOString();const doneAt=completedAtFromDate(document.getElementById('complete-date')?.value);const upd={status:'done',completed_at:doneAt,updated_at:now};
   if(remarks)upd.completion_remarks=remarks;if(artifactLink)upd.artifact_link=artifactLink;
   if(extra.impact)upd.impact=extra.impact;
   if(extra.workstream!==undefined)upd.workstream=extra.workstream;
